@@ -28,7 +28,7 @@ void PersonItemWidget::setSurname(const QString& text) {
   refreshTexts();
 }
 
-/*
-QWidget* PersonItem::getPersonNameWidget() {
+
+QWidget* PersonItemWidget::getPersonNameWidget() {
   return ui->PersonNameEdit;
-}*/
+}

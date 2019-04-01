@@ -17,7 +17,7 @@ public:
   void setName(const QString& text);
   void setSurname(const QString &text);
 
-  //QWidget *getPersonNameWidget();
+  QWidget *getPersonNameWidget();
 private:
   Ui::Item *ui;
   QString m_name;

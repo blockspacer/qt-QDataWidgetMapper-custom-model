@@ -16,6 +16,12 @@
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
+     <widget class="QLineEdit" name="lineEdit"/>
+    </item>
+    <item>
+     <widget class="QLineEdit" name="lineEdit_2"/>
+    </item>
+    <item>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
        <widget class="QFrame" name="frame_3">

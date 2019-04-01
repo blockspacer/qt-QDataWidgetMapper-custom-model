@@ -7,6 +7,9 @@
 #include <QSortFilterProxyModel>
 #include <QTimer>
 #include <QPair>
+#include <QAbstractItemModel>
+#include <QVector>
+#include <QStandardItem>
 
 #include <memory>
 
@@ -54,11 +57,11 @@ struct fetchedPageData {
   int recievedPagePersonsNum;
 };
 
-enum class UserRoles
+/*enum class UserRoles
 {
     CustomDataStart = Qt::UserRole,
     PersonRole
-};
+};*/
 
 class PersonSortFilterProxyModel : public QSortFilterProxyModel
 {
@@ -84,6 +87,68 @@ private:
     QDate maxDate;
 };
 
+enum class Columns  {
+  Person = 0
+  , TOTAL
+};
+
+class PersonsModel : public QStandardItemModel
+{
+Q_OBJECT
+public:
+    /*enum OptionID {
+        PersonName,
+    };*/
+
+    enum Roles {
+        NameRole = Qt::UserRole + 1
+        , SurnameRole
+        , TOTAL
+        //, ModelRole
+    };
+
+    explicit PersonsModel(int rows, int columns, QObject *parent = nullptr);
+    /*~PersonsModel();
+
+    QModelIndex index(int row, int column, const QModelIndex &parent) const override;
+    QModelIndex parent(const QModelIndex &child) const override;
+
+    int rowCount(const QModelIndex &parent) const override;
+    int columnCount(const QModelIndex &parent) const override;
+
+    QVariant data(const QModelIndex &index, int role) const override;
+    QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
+
+    bool hasChildren(const QModelIndex &parent) const override;
+    Qt::ItemFlags flags(const QModelIndex &index) const override;
+
+    QStandardItem *item(int row, int column = 0) const;*/
+
+    void addPerson(const QString &name);
+    QHash<int, QByteArray> roleNames() const Q_DECL_OVERRIDE;
+private:
+
+    /*struct Node
+    {
+        Node(Node *parent = 0) : parent(parent), children(0) {}
+        ~Node() { delete children; }
+        Node *parent;
+        QVector<Node> *children;
+    };
+
+    QStandardItem *node(int row, QStandardItem *parent) const;
+    QStandardItem *parent(QStandardItem *child) const;
+    int row(QStandardItem *node) const;
+
+    QIcon services;
+    int rc;
+    int cc;
+    QVector<QStandardItem> *tree;*/
+
+    //QVector<Person> *tree;
+    //QMap<QString, Person> personMap;
+};
+
 class MainWindow : public QMainWindow
 {
 Q_OBJECT
@@ -92,7 +157,7 @@ public:
   explicit MainWindow(QWidget *parent = nullptr);
   ~MainWindow();
 
-  std::shared_ptr<fetchedPageData> fetchRemotePersonsToModel(int page, int personsPerPage, const QString& filter);
+  std::shared_ptr<fetchedPageData> fetchRemotePersonsToModel(int page, int personsPerPage, const QString& filter, const PersonsModel::Roles& filterRole);
   int fetchRemotePageCount(int pageSize);
   void refreshPageWidgets(std::shared_ptr<fetchedPageData> fetchedPageItems);
 
@@ -101,7 +166,8 @@ public slots:
 
 private:
   Ui::MainWindow *ui;
-  QStandardItemModel *model;
+  //QStandardItemModel *model;
+  PersonsModel *model;
   QDataWidgetMapper *mapper;
   QSortFilterProxyModel* filterModel;
   QTimer* timer;
