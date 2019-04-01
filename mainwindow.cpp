@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "person_item_widget.h"
+#include "person_page_widget.h"
 
 #include <cmath>
 
@@ -413,7 +414,9 @@ std::shared_ptr<fetchedPageData> MainWindow::fetchRemotePersonsToModel(int page,
   for ( Person& person : result->persons) {
     //qDebug() << "person.name person.name" << person.name;
     //QStandardItem *item = new QStandardItem(person.name);
-    QStandardItem *item = new QStandardItem(person.name);
+    QVariant qvar = QVariant::fromValue(person);
+    //qDebug() << "qvar.toString()" << qvar.toString();
+    QStandardItem *item = new QStandardItem(qvar.toString());
     item->setEditable(true);
 
     /*if (model->hasIndex(modelRow, personColumnIndex)) {
@@ -471,8 +474,10 @@ std::shared_ptr<fetchedPageData> MainWindow::fetchRemotePersonsToModel(int page,
     } else {
       //qDebug() << "added" << person.name << " to " << modelRow;
       model->appendRow(item);
-      //QModelIndex nameIndex = model->index(modelRow, 0);
+
+      //QModelIndex nameIndex = model->index(modelRow, 1);
       //model->setData(nameIndex, person.name, PersonsModel::NameRole);
+
       /*QList<QStandardItem*> rowItems;
       rowItems.push_back(item);
       model->insertRow(modelRow, rowItems);*/
@@ -533,9 +538,15 @@ ui(new Ui::MainWindow)
 
   mapper = new QDataWidgetMapper(this);
   mapper->setModel(model);
+  //mapper->setOrientation(Qt::Vertical);
 
   //mapper->addMapping(ui->lineEdit, 0, "name");
-  mapper->addMapping(ui->lineEdit, 0);
+  //mapper->addMapping(ui->lineEdit, 0);
+
+  PersonPageWidget* pw = new PersonPageWidget();
+  ui->pwLayout->addWidget(pw);
+
+  mapper->addMapping(pw, static_cast<int>(Columns::PersonName), "PersonName");
 
 
   filterModel = new PersonSortFilterProxyModel();
@@ -832,6 +843,63 @@ PersonsModel::PersonsModel(int rows, int columns, QObject *parent) : QStandardIt
 
 }
 
+QVariant PersonsModel::data(const QModelIndex &index, int role) const
+{
+  /*QStandardItemModelPrivate *d = reinterpret_cast<QStandardItemModelPrivate *>(QStandardItemModel::d_ptr.data());
+
+  Q_D(const QStandardItemModel);
+  QStandardItem *item = d->itemFromIndex(index);*/
+
+  //see https://github.com/alexandru/address-book/blob/master/tablemodel.cpp#L30
+  if (!index.isValid())
+    return QVariant();
+
+  if(role == Qt::EditRole)
+  {
+    qDebug() << "Qt::EditRole";
+  }
+
+  if (index.column() == static_cast<int>(Columns::PersonName)) {
+    QModelIndex index_person = this->index(index.row(), static_cast<int>(Columns::Person));
+    QStandardItem* itm = this->itemFromIndex(index_person);
+    QString item = qvariant_cast<QString>(itm->data(PersonsModel::Roles::NameRole).value<QVariant>());
+    qDebug() << "index.column()";
+    return QVariant(item);
+  } else {
+    QStandardItem* itm = this->itemFromIndex(index);
+
+    //QModelIndex index_ = this->index(index.row(), index.column());
+    QString item = qvariant_cast<QString>(itm->data(role).value<QVariant>());
+    qDebug() << "Qt::NameRole" << item;
+
+    return QVariant(item);
+  }
+
+
+  /*if(role == PersonsModel::Roles::NameRole)
+  {
+    QStandardItem* itm = this->itemFromIndex(index);
+
+    //QModelIndex index_ = this->index(index.row(), index.column());
+    QString item = qvariant_cast<QString>(itm->data(role).value<QVariant>());
+    qDebug() << "Qt::NameRole" << item;
+
+    return QVariant(item);
+  }
+  if(role == PersonsModel::Roles::SurnameRole)
+  {
+    QStandardItem* itm = this->itemFromIndex(index);
+
+    //QModelIndex index_ = this->index(index.row(), index.column());
+    QString item = qvariant_cast<QString>(itm->data(role).value<QVariant>());
+    qDebug() << "Qt::SurnameRole" << item;
+
+    return QVariant(item);
+  }*/
+
+  return QVariant();
+}
+
 void PersonsModel::addPerson(const QString &name)
 {
     QStandardItem *item = new QStandardItem;
@@ -841,10 +909,10 @@ void PersonsModel::addPerson(const QString &name)
 }
 
 
-QHash<int, QByteArray> PersonsModel::roleNames() const
+/*QHash<int, QByteArray> PersonsModel::roleNames() const
 {
     QHash<int, QByteArray> mapping = QStandardItemModel::roleNames();
     mapping[NameRole] = "name";
-    //mapping[ModelRole] = "model";
+    mapping[SurnameRole] = "surname";
     return mapping;
-}
+}*/

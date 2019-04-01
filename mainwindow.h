@@ -1,6 +1,8 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "person.h"
+
 #include <QMainWindow>
 #include <QWidget>
 #include <QDate>
@@ -34,18 +36,6 @@ QT_END_NAMESPACE
   // must start from 0, without collisions
   int fieldId;
 };*/
-
-struct Person {
-  // any unique id, without collisions
-  int uid;
-
-  QString name;
-
-  QString surname;
-};
-
-// allow type usage with QVariant
-Q_DECLARE_METATYPE(Person);
 
 
 struct fetchedPageData {
@@ -89,8 +79,12 @@ private:
 
 enum class Columns  {
   Person = 0
+  , PersonName
+  , PersonSurname
   , TOTAL
 };
+
+QT_FORWARD_DECLARE_CLASS(QStandardItemModelPrivate)
 
 class PersonsModel : public QStandardItemModel
 {
@@ -108,6 +102,11 @@ public:
     };
 
     explicit PersonsModel(int rows, int columns, QObject *parent = nullptr);
+
+    QVariant data(const QModelIndex &index, int role) const override;
+
+    //QVariant data1(const QModelIndex &index, int role) const;
+
     /*~PersonsModel();
 
     QModelIndex index(int row, int column, const QModelIndex &parent) const override;
@@ -116,7 +115,6 @@ public:
     int rowCount(const QModelIndex &parent) const override;
     int columnCount(const QModelIndex &parent) const override;
 
-    QVariant data(const QModelIndex &index, int role) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
 
     bool hasChildren(const QModelIndex &parent) const override;
@@ -125,7 +123,9 @@ public:
     QStandardItem *item(int row, int column = 0) const;*/
 
     void addPerson(const QString &name);
-    QHash<int, QByteArray> roleNames() const Q_DECL_OVERRIDE;
+
+    //QHash<int, QByteArray> roleNames() const Q_DECL_OVERRIDE;
+
 private:
 
     /*struct Node

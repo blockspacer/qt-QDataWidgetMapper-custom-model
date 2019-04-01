@@ -27,15 +27,19 @@ CONFIG += c++11
 SOURCES += \
         main.cpp \
         mainwindow.cpp \
-    person_item_widget.cpp
+    person_item_widget.cpp \
+    person_page_widget.cpp
 
 HEADERS += \
         mainwindow.h \
-    person_item_widget.h
+    person_item_widget.h \
+    person_page_widget.h \
+    person.h
 
 FORMS += \
         mainwindow.ui \
-    person_item_widget.ui
+    person_item_widget.ui \
+    person_page_widget.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

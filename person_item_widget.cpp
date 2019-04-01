@@ -1,6 +1,8 @@
 #include "person_item_widget.h"
 #include "ui_item.h"
 
+#include <QDebug>
+
 PersonItemWidget::PersonItemWidget(QWidget *parent) :
 QWidget(parent),
 ui(new Ui::Item)
@@ -20,6 +22,7 @@ void PersonItemWidget::refreshTexts() {
 
 void PersonItemWidget::setName(const QString& text) {
   m_name = text;
+  //qDebug() << "setName " << text;
   refreshTexts();
 }
 
