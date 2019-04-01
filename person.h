@@ -21,11 +21,11 @@ struct Person {
 
   /*static QString PersonToString( Person* t ) {
      return t->name;
-  }*/
+  }
 
   static QString PersonToString( Person t ) {
      return t.name + "_" + t.surname;
-  }
+  }*/
 
 /*
   QVariant toVariant() {

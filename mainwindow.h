@@ -79,8 +79,7 @@ private:
 
 enum class Columns  {
   Person = 0
-  , PersonName
-  , PersonSurname
+  , PersonsPage
   , TOTAL
 };
 
@@ -95,7 +94,8 @@ public:
     };*/
 
     enum Roles {
-        NameRole = Qt::UserRole + 1
+        PersonVariantRole = Qt::UserRole + 1
+        , NameRole
         , SurnameRole
         , TOTAL
         //, ModelRole

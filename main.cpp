@@ -5,7 +5,7 @@
 int main(int argc, char *argv[])
 {
 
-  QMetaType::registerConverter<Person,QString>( Person::PersonToString );
+  //QMetaType::registerConverter<Person,QString>( Person::PersonToString );
 
   QApplication a(argc, argv);
   MainWindow w;

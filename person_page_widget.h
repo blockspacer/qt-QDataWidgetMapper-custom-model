@@ -17,23 +17,26 @@ class PersonPageWidget : public QWidget
 {
 Q_OBJECT
 
-Q_PROPERTY(QString PersonName READ PersonName WRITE setPersonName NOTIFY PersonNameChanged USER true)
+Q_PROPERTY(QVariant PersonsPage READ PersonsPage WRITE setPersonsPage NOTIFY PersonsPageChanged USER true)
 
 public:
 explicit PersonPageWidget(QWidget *parent = nullptr);
 ~PersonPageWidget();
 
-    QString PersonName() const;
+    QVariant PersonsPage() const;
 
 public slots:
-    void setPersonName(const QString& val);
+    void setPersonsPage(const QVariant& val);
 
 signals:
-    void PersonNameChanged(const QString& val);
+    void PersonsPageChanged(const QVariant& val);
 
 private:
-Ui::PersonPageWidget *ui;
-QString m_personName;
+  void refreshPageWidgets(QList<QVariant> pageItems);
+
+private:
+  Ui::PersonPageWidget *ui;
+  QVariant m_PersonsPage;
 };
 
 #endif // PERSON_PAGE_WIDGET_H

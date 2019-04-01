@@ -434,7 +434,7 @@ std::shared_ptr<fetchedPageData> MainWindow::fetchRemotePersonsToModel(int page,
     qDebug() << "variant " << variant.value<Person>().name;
     qDebug() << "variant2 " << variant2.value<Person>().name;*/
     QVariant variant = QVariant::fromValue(person);
-    //item->setData(QVariant::fromValue(person), static_cast<int>(PersonsModel::NameRole));
+    item->setData(QVariant::fromValue(person), static_cast<int>(PersonsModel::PersonVariantRole));
     item->setData(person.name, static_cast<int>(PersonsModel::NameRole));
     item->setData(person.surname, static_cast<int>(PersonsModel::SurnameRole));
 
@@ -546,8 +546,7 @@ ui(new Ui::MainWindow)
   PersonPageWidget* pw = new PersonPageWidget();
   ui->pwLayout->addWidget(pw);
 
-  mapper->addMapping(pw, static_cast<int>(Columns::PersonName), "PersonName");
-
+  mapper->addMapping(pw, static_cast<int>(Columns::PersonsPage), "PersonsPage");
 
   filterModel = new PersonSortFilterProxyModel();
 
@@ -859,12 +858,20 @@ QVariant PersonsModel::data(const QModelIndex &index, int role) const
     qDebug() << "Qt::EditRole";
   }
 
-  if (index.column() == static_cast<int>(Columns::PersonName)) {
-    QModelIndex index_person = this->index(index.row(), static_cast<int>(Columns::Person));
-    QStandardItem* itm = this->itemFromIndex(index_person);
-    QString item = qvariant_cast<QString>(itm->data(PersonsModel::Roles::NameRole).value<QVariant>());
-    qDebug() << "index.column()";
-    return QVariant(item);
+  if (index.column() == static_cast<int>(Columns::PersonsPage)) {
+    QList<QVariant> page;
+    int pageStartCursor = index.row() * kPersonsPerPage;
+    int availiblePageItems = std::min(rowCount(), pageStartCursor + kPersonsPerPage);
+    for (int i = pageStartCursor; i < availiblePageItems; i++) {
+      QModelIndex index_person = this->index(i, static_cast<int>(Columns::Person));
+      QStandardItem* itm = this->itemFromIndex(index_person);
+      //QString item = qvariant_cast<QString>(itm->data(PersonsModel::Roles::PersonVariantRole).value<QVariant>());
+      QVariant item = itm->data(PersonsModel::Roles::PersonVariantRole).value<QVariant>();
+
+      qDebug() << "index.column()";
+      page.push_back(item);
+    }
+    return QVariant(page);
   } else {
     QStandardItem* itm = this->itemFromIndex(index);
 
@@ -874,7 +881,6 @@ QVariant PersonsModel::data(const QModelIndex &index, int role) const
 
     return QVariant(item);
   }
-
 
   /*if(role == PersonsModel::Roles::NameRole)
   {
@@ -907,7 +913,6 @@ void PersonsModel::addPerson(const QString &name)
     //item->setData(model, ModelRole);
     appendRow(item);
 }
-
 
 /*QHash<int, QByteArray> PersonsModel::roleNames() const
 {
