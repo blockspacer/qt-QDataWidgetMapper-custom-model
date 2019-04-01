@@ -51,7 +51,7 @@ struct fetchedPageData {
   int requestedPageSize;
   int totalItems;
   int requestedPageNum;
-  int recievedPersonsNum;
+  int recievedPagePersonsNum;
 };
 
 enum class UserRoles

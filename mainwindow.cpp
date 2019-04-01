@@ -231,7 +231,9 @@ QList<Person> retrieveRemotePersonsFiltered(const QString& filter) {
   return dummyRemotePersonsFiltered;
 }
 
-QPair<QList<Person>, int> retrieveRemotePersons(int page, int personsPerPage, const QString& filter) {
+std::shared_ptr<fetchedPageData> retrieveRemotePersons(int page, int personsPerPage, const QString& filter) {
+  std::shared_ptr<fetchedPageData> result = std::make_shared<fetchedPageData>();
+
   QList<Person> dummyRemotePersonsPage;
 
   auto filtered = retrieveRemotePersonsFiltered(filter);
@@ -241,25 +243,36 @@ QPair<QList<Person>, int> retrieveRemotePersons(int page, int personsPerPage, co
     qDebug() << "not enough persons. Requested page " << page;
   }
 
-  int availiblePersons = std::min(cursorI + personsPerPage, filtered.size());
+  int pagePersonsNum = std::min(cursorI + personsPerPage, filtered.size());
 
-  for (; cursorI < availiblePersons; cursorI++) {
+  for (; cursorI < pagePersonsNum; cursorI++) {
     //filtered[cursorI].name = "Bao";//;GetRandomString();
 
     dummyRemotePersonsPage.push_back(filtered.at(cursorI));
   }
-  return QPair<QList<Person>, int>(dummyRemotePersonsPage, filtered.size());
+
+  std::div_t res = std::div(filtered.size(), personsPerPage);
+  // Fast ceiling of an integer division
+  int pageCount = res.rem ? (res.quot + 1) : res.quot;
+
+  result->persons = dummyRemotePersonsPage;
+  result->requestedPageNum = page;
+  result->totalPages = pageCount;
+  result->totalItems = filtered.size(); // TODO
+  result->recievedPagePersonsNum = pagePersonsNum;
+  result->requestedPageSize = personsPerPage;
+
+  return result;
 }
 
 std::shared_ptr<fetchedPageData> MainWindow::fetchRemotePersonsToModel(int page, int personsPerPage, const QString& filter)
 {
-  std::shared_ptr<fetchedPageData> result = std::make_shared<fetchedPageData>();
-
   //int pageCount = fetchRemotePageCount(personsPerPage);
 
   int pageIndex = page;
-  QPair<QList<Person>, int> personsPage = retrieveRemotePersons(pageIndex, personsPerPage, filter);
-  int pageCount = personsPage.second;
+
+  std::shared_ptr<fetchedPageData> result = retrieveRemotePersons(pageIndex, personsPerPage, filter);
+  int pageCount = result->totalPages;
 
   //Q_ASSERT(pageIndex < pageCount);
   if (pageIndex >= pageCount) {
@@ -268,7 +281,7 @@ std::shared_ptr<fetchedPageData> MainWindow::fetchRemotePersonsToModel(int page,
   }
 
   int modelRow = page * personsPerPage; // person index in page
-  for ( Person& person : personsPage.first) {
+  for ( Person& person : result->persons) {
     //qDebug() << "person.name person.name" << person.name;
     //QStandardItem *item = new QStandardItem(person.name);
     QStandardItem *item = new QStandardItem();
@@ -341,13 +354,13 @@ std::shared_ptr<fetchedPageData> MainWindow::fetchRemotePersonsToModel(int page,
   //int columnid = personColumnIndex;
   //filterModel->sort(columnid, Qt::DescendingOrder);
 
-  result->persons = personsPage.first;
+  /*result->persons = personsPage.first;
   result->requestedPageNum = page;
   result->totalPages = pageCount;
-  result->totalItems = pageCount * kPersonsPerPage;
+  result->totalItems = pageCount * kPersonsPerPage; // TODO
   result->recievedPersonsNum = personsPage.first.size();
   qDebug() << "result->recievedPersonsNum " << result->recievedPersonsNum;
-  result->requestedPageSize = kPersonsPerPage;
+  result->requestedPageSize = kPersonsPerPage;*/
 
   return result;
 }
@@ -444,8 +457,8 @@ ui(new Ui::MainWindow)
     }
   }*/
 
-  //fetchRemotePersons(0, kPersonsPerPage);
-  //fetchRemotePersons(1, kPersonsPerPage);
+  /*fetchRemotePersonsToModel(0, kPersonsPerPage, "");
+  fetchRemotePersonsToModel(1, kPersonsPerPage, "");*/
 
   connect(ui->searchButton, &QPushButton::clicked, [this]()
   {
@@ -462,12 +475,13 @@ ui(new Ui::MainWindow)
 
       // TODO: filter param
       lastFetchedData = fetchRemotePersonsToModel(0, kPersonsPerPage, ui->searchEdit->text());
-      qDebug()<<"lastFetchedData->recievedPersonsNum " << lastFetchedData->recievedPersonsNum;
-      refreshPageWidgets(lastFetchedData);
+      qDebug()<<"lastFetchedData->recievedPersonsNum " << lastFetchedData->recievedPagePersonsNum;
+      //refreshPageWidgets(lastFetchedData);
 
       //qDebug()<<"clicked" << ui->searchEdit->text();
       filterModel->setFilterFixedString(ui->searchEdit->text());
       //filterModel->filterRole();
+      refreshPageWidgets(lastFetchedData);
 
       mapper->toFirst(); // refresh
     } else {
@@ -477,10 +491,11 @@ ui(new Ui::MainWindow)
 
       // TODO: filter param
       lastFetchedData = fetchRemotePersonsToModel(0, kPersonsPerPage, "");
-      refreshPageWidgets(lastFetchedData);
+      //refreshPageWidgets(lastFetchedData);
 
       Q_ASSERT(model->rowCount()); // setCurrentIndex will not work with empty model
       mapper->setCurrentIndex(mapper->currentIndex()); // refresh
+      refreshPageWidgets(lastFetchedData);
     }
   });
 
@@ -491,27 +506,28 @@ ui(new Ui::MainWindow)
      filterModel->setFilterFixedString("");
      //filterModel->filterRole();
 
-      // TODO: filter param
-      lastFetchedData = fetchRemotePersonsToModel(0, kPersonsPerPage, "");
-      refreshPageWidgets(lastFetchedData);
+     // TODO: filter param
+     lastFetchedData = fetchRemotePersonsToModel(0, kPersonsPerPage, "");
+     //refreshPageWidgets(lastFetchedData);
 
      Q_ASSERT(model->rowCount()); // setCurrentIndex will not work with empty model
      mapper->setCurrentIndex(mapper->currentIndex()); // refresh
+     refreshPageWidgets(lastFetchedData);
   });
 
   //connect(ui->prevButton, &QAbstractButton::clicked, mapper, &QDataWidgetMapper::toPrevious);
   //connect(ui->nextButton, &QAbstractButton::clicked, mapper, &QDataWidgetMapper::toNext);
 
   connect(ui->prevButton, &QAbstractButton::clicked, [this]() {
-    lastFetchedData = fetchRemotePersonsToModel(0, kPersonsPerPage, ui->searchEdit->text());
+    lastFetchedData = fetchRemotePersonsToModel(mapper->currentIndex() - 1, kPersonsPerPage, ui->searchEdit->text());
     mapper->toPrevious();
-    //  refreshPageWidgets(lastFetchedData);
+    refreshPageWidgets(lastFetchedData);
   });
 
   connect(ui->nextButton, &QAbstractButton::clicked, [this]() {
-    lastFetchedData = fetchRemotePersonsToModel(0, kPersonsPerPage, ui->searchEdit->text());
+    lastFetchedData = fetchRemotePersonsToModel(mapper->currentIndex() + 1, kPersonsPerPage, ui->searchEdit->text());
     mapper->toNext();
-    //  refreshPageWidgets(lastFetchedData);
+    refreshPageWidgets(lastFetchedData);
   });
 
   connect(mapper, &QDataWidgetMapper::currentIndexChanged, this, &MainWindow::onMapperIndexChanged);
@@ -550,7 +566,7 @@ void MainWindow::refreshPageWidgets(std::shared_ptr<fetchedPageData> fetchedPage
     }
   }
 
-  if (!fetchedPageItems || !lastFetchedData->recievedPersonsNum) {
+  if (!fetchedPageItems || !lastFetchedData->recievedPagePersonsNum) {
     qDebug() << "nothing to show";
     ui->prevButton->setEnabled(false);
     ui->nextButton->setEnabled(false);
@@ -559,7 +575,7 @@ void MainWindow::refreshPageWidgets(std::shared_ptr<fetchedPageData> fetchedPage
 
   int pageStart = fetchedPageItems->requestedPageNum * fetchedPageItems->requestedPageSize;
 
-  int totalRetrievedItems = fetchedPageItems->recievedPersonsNum;//personsPage.size(); // TODO
+  int totalRetrievedItems = fetchedPageItems->recievedPagePersonsNum;//personsPage.size(); // TODO
 
   int totalAvailibleItems = std::min(totalRetrievedItems, fetchedPageItems->requestedPageSize);
   //for (int i = 0; i < fetchedPageItems->requestedPageSize; i++) {
@@ -603,12 +619,14 @@ void MainWindow::refreshPageWidgets(std::shared_ptr<fetchedPageData> fetchedPage
 void MainWindow::onMapperIndexChanged(int pageNum) {
   qDebug() << "onMapperIndexChanged for page " << pageNum;
 
-  if (lastFetchedData )
-    qDebug() << "onMapperIndexChanged recievedPersonsNum " << lastFetchedData->recievedPersonsNum;
+  //lastFetchedData = fetchRemotePersonsToModel(pageNum, kPersonsPerPage, "");
 
-  refreshPageWidgets(lastFetchedData);
+  if (lastFetchedData)
+    qDebug() << "onMapperIndexChanged recievedPersonsNum " << lastFetchedData->recievedPagePersonsNum;
 
-  if (!lastFetchedData || !lastFetchedData->recievedPersonsNum) {
+  //refreshPageWidgets(lastFetchedData);
+
+  if (!lastFetchedData || !lastFetchedData->recievedPagePersonsNum) {
     qDebug() << "nothing to show";
     //ui->prevButton->setEnabled(false);
     //ui->nextButton->setEnabled(false);
@@ -619,13 +637,16 @@ void MainWindow::onMapperIndexChanged(int pageNum) {
   //int totalPersons = filterModel->rowCount() - 1;
   //int totalPersons = lastFetchedData->totalPages * lastFetchedData->requestedPageSize;
   int totalPersons = lastFetchedData->totalItems;
-  int recievedPersons = lastFetchedData->recievedPersonsNum;
+  int recievedPersons = lastFetchedData->recievedPagePersonsNum;
   int pageStart = lastFetchedData->requestedPageNum * lastFetchedData->requestedPageSize;
   //ui->prevButton->setEnabled(pageStart > 0 && pageStart < totalPersons);
   //ui->nextButton->setEnabled((pageStart + lastFetchedData->requestedPageSize) < totalPersons);
 
+  qDebug() << "onMapperIndexChanged requestedPageNum " << lastFetchedData->requestedPageNum;
+  qDebug() << "onMapperIndexChanged totalPages " << lastFetchedData->totalPages;
+
   ui->prevButton->setEnabled(lastFetchedData->requestedPageNum > 0);
-  ui->nextButton->setEnabled(lastFetchedData->requestedPageNum < lastFetchedData->totalPages);
+  ui->nextButton->setEnabled(lastFetchedData->requestedPageNum < (lastFetchedData->totalPages - 1));
 }
 
 MainWindow::~MainWindow()
