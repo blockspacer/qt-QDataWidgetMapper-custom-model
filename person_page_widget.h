@@ -25,6 +25,8 @@ explicit PersonPageWidget(QWidget *parent = nullptr);
 
     QVariant PersonsPage() const;
 
+    void clearPage();
+
 public slots:
     void setPersonsPage(const QVariant& val);
 

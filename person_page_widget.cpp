@@ -44,9 +44,8 @@ void PersonPageWidget::setPersonsPage(const QVariant& val)
   emit PersonsPageChanged(val);
 }
 
-void PersonPageWidget::refreshPageWidgets(QList<QVariant> pageItems) {
-  qDebug() << "refreshPageWidgets " << pageItems.size();
-
+void PersonPageWidget::clearPage() {
+  qDebug() << "PersonPageWidget clearPage";
   // remove all page widgets
   {
     QLayoutItem* item;
@@ -56,13 +55,20 @@ void PersonPageWidget::refreshPageWidgets(QList<QVariant> pageItems) {
         delete item;
     }
   }
+}
+
+
+void PersonPageWidget::refreshPageWidgets(QList<QVariant> pageItems) {
+  qDebug() << "PersonPageWidget refreshPageWidgets " << pageItems.size();
+
+  clearPage();
 
   for (int i = 0; i < pageItems.size(); i++) {
     //const QModelIndex index = filterModel->index(itemRow, personColumnIndex);
 
     Person person = qvariant_cast<Person>(pageItems.at(i));
-    qDebug() << "setPersonsPage " << person.name;
-    qDebug() << "setPersonsPage " << person.surname;
+    //qDebug() << "setPersonsPage " << person.name;
+    //qDebug() << "setPersonsPage " << person.surname;
 
     //Person person = qvariant_cast<Person>(filterModel->data(index, static_cast<int>(PersonsModel::NameRole)).value<QVariant>());
     /*Person person;
