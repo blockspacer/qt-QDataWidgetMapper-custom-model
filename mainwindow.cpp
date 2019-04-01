@@ -447,7 +447,7 @@ std::shared_ptr<fetchedPageData> MainWindow::fetchRemotePersonsToModel(int page,
 
       if(existingItem) {
         //person.name = "gg";
-        //existingItem->setData(QVariant::fromValue(person), static_cast<int>(PersonsModel::NameRole));
+        existingItem->setData(QVariant::fromValue(person), static_cast<int>(PersonsModel::PersonVariantRole));
         existingItem->setData(person.name, static_cast<int>(PersonsModel::NameRole));
         existingItem->setData(person.surname, static_cast<int>(PersonsModel::SurnameRole));
       } else {
@@ -543,12 +543,13 @@ ui(new Ui::MainWindow)
   //mapper->addMapping(ui->lineEdit, 0, "name");
   //mapper->addMapping(ui->lineEdit, 0);
 
-  PersonPageWidget* pw = new PersonPageWidget();
+  pw = new PersonPageWidget();
   ui->pwLayout->addWidget(pw);
 
   mapper->addMapping(pw, static_cast<int>(Columns::PersonsPage), "PersonsPage");
 
   filterModel = new PersonSortFilterProxyModel();
+  //mapper->setModel(filterModel);
 
   ///model->sort(personColumnIndex, Qt::AscendingOrder);
   //model->setSortRole(static_cast<int>(UserRoles::PersonRole));
@@ -625,7 +626,15 @@ ui(new Ui::MainWindow)
       // TODO: fetch from remote
       // TODO: clear old model cache
       model->clear();
-      filterModel->clear();
+      int columsCount = static_cast<int>(Columns::TOTAL);
+      model->setColumnCount(columsCount);
+      //model->removeRows(0, model->rowCount());
+      //model->removeColumns(0, model->columnCount());
+      //qDebug() << "model->rowCount()" << model->rowCount();
+      //filterModel->clear();
+      filterModel->invalidate();
+
+      //mapper->addMapping(pw, static_cast<int>(Columns::PersonsPage), "PersonsPage");
       // NOTE: reset page to 0
       //fetchRemotePersons(0, kPersonsPerPage, ui->searchEdit->text());
       //fetchRemotePersonsToModel(0, kPersonsPerPage);
@@ -635,6 +644,8 @@ ui(new Ui::MainWindow)
 
       // TODO: filter param
       lastFetchedData = fetchRemotePersonsToModel(0, kPersonsPerPage, ui->searchEdit->text(), filterRole);
+      //lastFetchedData = nullptr;
+
       //qDebug()<<"lastFetchedData->recievedPersonsNum " << lastFetchedData->recievedPagePersonsNum;
       //refreshPageWidgets(lastFetchedData);
 
@@ -671,7 +682,10 @@ ui(new Ui::MainWindow)
      //refreshPageWidgets(lastFetchedData);
 
      Q_ASSERT(model->rowCount()); // setCurrentIndex will not work with empty model
-     mapper->setCurrentIndex(mapper->currentIndex()); // refresh
+     //mapper->setCurrentIndex(mapper->currentIndex()); // refresh
+
+     mapper->toFirst();
+
      refreshPageWidgets(lastFetchedData);
   });
 
@@ -861,6 +875,7 @@ QVariant PersonsModel::data(const QModelIndex &index, int role) const
   if (index.column() == static_cast<int>(Columns::PersonsPage)) {
     QList<QVariant> page;
     int pageStartCursor = index.row() * kPersonsPerPage;
+    qDebug() << "pageStartCursor" << pageStartCursor;
     int availiblePageItems = std::min(rowCount(), pageStartCursor + kPersonsPerPage);
     for (int i = pageStartCursor; i < availiblePageItems; i++) {
       QModelIndex index_person = this->index(i, static_cast<int>(Columns::Person));
@@ -877,7 +892,7 @@ QVariant PersonsModel::data(const QModelIndex &index, int role) const
 
     //QModelIndex index_ = this->index(index.row(), index.column());
     QString item = qvariant_cast<QString>(itm->data(role).value<QVariant>());
-    qDebug() << "Qt::NameRole" << item;
+    //qDebug() << "Qt::NameRole" << item;
 
     return QVariant(item);
   }

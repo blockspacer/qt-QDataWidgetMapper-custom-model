@@ -23,14 +23,14 @@ QVariant PersonPageWidget::PersonsPage() const
 
 void PersonPageWidget::setPersonsPage(const QVariant& val)
 {
-  qDebug() << "setPersonsPage ";
   QList<QVariant> pageItems = val.toList();
-  for(auto& page : pageItems) {
+  //qDebug() << "setPersonsPage " << pageItems.size();
+  /*for(auto& page : pageItems) {
     Person person = qvariant_cast<Person>(page);
-    qDebug() << "setPersonsPage " << person.name;
-    qDebug() << "setPersonsPage " << person.surname;
+    //qDebug() << "setPersonsPage " << person.name;
+    //qDebug() << "setPersonsPage " << person.surname;
     //ui->scrollAreaWidgetContentsLayout->addWidget();
-  }
+  }*/
 
   refreshPageWidgets(pageItems);
 

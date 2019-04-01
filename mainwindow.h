@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include "person.h"
+#include "person_page_widget.h"
 
 #include <QMainWindow>
 #include <QWidget>
@@ -172,6 +173,7 @@ private:
   QSortFilterProxyModel* filterModel;
   QTimer* timer;
   std::shared_ptr<fetchedPageData> lastFetchedData;
+  PersonPageWidget* pw;
 };
 
 #endif // MAINWINDOW_H
