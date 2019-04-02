@@ -51,6 +51,20 @@
        </widget>
       </item>
       <item>
+       <widget class="QLineEdit" name="lineEdit">
+        <property name="text">
+         <string>k;lkl;</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkBox">
+        <property name="text">
+         <string>Offline mode</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QFrame" name="frame_2">
         <property name="frameShape">
          <enum>QFrame::StyledPanel</enum>
@@ -67,7 +81,7 @@
            <item>
             <widget class="QPushButton" name="searchButton">
              <property name="text">
-              <string>search</string>
+              <string>search!</string>
              </property>
             </widget>
            </item>

@@ -432,10 +432,8 @@ std::shared_ptr<fetchedPageData> MainWindow::fetchRemotePersonsToModel(int page,
   for ( Person& person : result->persons) {
     //qDebug() << "person.name person.name" << person.name;
     //QStandardItem *item = new QStandardItem(person.name);
-    QVariant qvar = QVariant::fromValue(person);
+    //QVariant qvar = QVariant::fromValue(person);
     //qDebug() << "qvar.toString()" << qvar.toString();
-    QStandardItem *item = new QStandardItem(qvar.toString());
-    item->setEditable(true);
 
     /*if (model->hasIndex(modelRow, personColumnIndex)) {
       person.name = "Frank";
@@ -451,23 +449,34 @@ std::shared_ptr<fetchedPageData> MainWindow::fetchRemotePersonsToModel(int page,
     QVariant variant = QVariant::fromValue(person1);
     qDebug() << "variant " << variant.value<Person>().name;
     qDebug() << "variant2 " << variant2.value<Person>().name;*/
-    QVariant variant = QVariant::fromValue(person);
-    item->setData(QVariant::fromValue(person), static_cast<int>(PersonsModel::PersonVariantRole));
-    item->setData(person.name, static_cast<int>(PersonsModel::NameRole));
-    item->setData(person.surname, static_cast<int>(PersonsModel::SurnameRole));
+    //QVariant variant = QVariant::fromValue(person);
 
     //item->setData(variant);
     //model->setItem(pageIndex, personCulumnIndex, item);
     //if(model->rowCount() < modelRow) {
-    if (model->hasIndex(modelRow, personColumnIndex)) {
+    if (m_model->hasIndex(modelRow, personColumnIndex)) {
 
-      QStandardItem* existingItem = model->item(modelRow);
+      QStandardItem* existingItem = m_model->item(modelRow);
 
       if(existingItem) {
         //person.name = "gg";
-        existingItem->setData(QVariant::fromValue(person), static_cast<int>(PersonsModel::PersonVariantRole));
+        /*existingItem->setData(QVariant::fromValue(person), static_cast<int>(PersonsModel::PersonVariantRole));
         existingItem->setData(person.name, static_cast<int>(PersonsModel::NameRole));
         existingItem->setData(person.surname, static_cast<int>(PersonsModel::SurnameRole));
+        */
+        QModelIndex existingIndexPerson = m_model->index(modelRow, personColumnIndex);
+        QModelIndex existingIndexPersonPage = m_model->index(modelRow, static_cast<int>(Columns::PersonsPage));
+        /*QVector<int> roles;
+        roles.push_back(static_cast<int>(PersonsModel::Roles::PersonVariantRole));
+        roles.push_back(static_cast<int>(PersonsModel::Roles::NameRole));
+        roles.push_back(static_cast<int>(PersonsModel::Roles::SurnameRole));*/
+        //m_model->dataChanged(existingIndexPerson, existingIndexPerson, roles);
+        //m_model->dataChanged(existingIndexPersonPage, existingIndexPersonPage, roles);
+        m_model->setData(existingIndexPerson, QVariant::fromValue(person.name), Qt::EditRole);
+        m_model->setData(existingIndexPerson, QVariant::fromValue(person), static_cast<int>(PersonsModel::PersonVariantRole));
+        m_model->setData(existingIndexPerson, QVariant::fromValue(person.name), static_cast<int>(PersonsModel::NameRole));
+        m_model->setData(existingIndexPerson, QVariant::fromValue(person.surname), static_cast<int>(PersonsModel::SurnameRole));
+        //m_model->setData()
       } else {
         qDebug() << "invalid model item at index" << modelRow;
       }
@@ -490,8 +499,13 @@ std::shared_ptr<fetchedPageData> MainWindow::fetchRemotePersonsToModel(int page,
       //model->dataChanged(QModelIndex(modelRow,),QModelIndex(),QVector<int>(static_cast<int>(UserRoles::PersonRole)));
       //qDebug() << "updated" << person.name << " to " << modelRow;
     } else {
+      QStandardItem *item = new QStandardItem(person.name);
+      item->setEditable(true);
+      item->setData(QVariant::fromValue(person), static_cast<int>(PersonsModel::PersonVariantRole));
+      item->setData(person.name, static_cast<int>(PersonsModel::NameRole));
+      item->setData(person.surname, static_cast<int>(PersonsModel::SurnameRole));
       //qDebug() << "added" << person.name << " to " << modelRow;
-      model->appendRow(item);
+      m_model->appendRow(item);
 
       //QModelIndex nameIndex = model->index(modelRow, 1);
       //model->setData(nameIndex, person.name, PersonsModel::NameRole);
@@ -543,44 +557,53 @@ std::shared_ptr<fetchedPageData> MainWindow::fetchRemotePersonsToModel(int page,
 
 MainWindow::MainWindow(QWidget *parent) :
 QMainWindow(parent),
-ui(new Ui::MainWindow)
+m_ui(new Ui::MainWindow)
 {
   setupDummyRemotePersons(); // TODO: use remote server
 
-  ui->setupUi(this);
+  m_ui->setupUi(this);
 
-  int columsCount = static_cast<int>(Columns::TOTAL); // person column
-  int predefinedRowNum = 0; // we will append rows dynamically
-  model = new PersonsModel(predefinedRowNum, columsCount, this);
+  /// \note we reserved columns for custom data
+  int columsCount = static_cast<int>(Columns::TOTAL);
+  /// \note we will append rows dynamically, so we use 0 starting rows
+  int predefinedRowNum = 0;
+  m_model = new PersonsModel(predefinedRowNum, columsCount, this);
   //model->headerData(0 , Qt::Horizontal, static_cast<int>(PersonsModel::Roles::NameRole));
 
-  mapper = new QDataWidgetMapper(this);
+  m_mapper = new QDataWidgetMapper(this);
+  m_mapper->setSubmitPolicy(QDataWidgetMapper::ManualSubmit);
   //mapper->setModel(model);
-  //mapper->setOrientation(Qt::Vertical);
+  m_mapper->setOrientation(Qt::Horizontal);
 
-  //mapper->addMapping(ui->lineEdit, 0, "name");
-  //mapper->addMapping(ui->lineEdit, 0);
+  m_personsWidget = new PersonPageWidget();
 
-  pw = new PersonPageWidget();
-  ui->pwLayout->addWidget(pw);
+  connect(m_personsWidget, SIGNAL(PersonsPageModified(QVariant)),
+        this, SLOT(onPersonsPageChanged(QVariant)));
+
+  m_ui->pwLayout->addWidget(m_personsWidget);
   //filterModel->sourceModel();
 
-  filterModel = new PersonSortFilterProxyModel();
-  mapper->setModel(filterModel);
+  m_filterModel = new PersonSortFilterProxyModel();
+  m_mapper->setModel(m_filterModel);
 
-  mapper->addMapping(pw, static_cast<int>(Columns::PersonsPage), "PersonsPage");
+  //m_mapper->addMapping(m_ui->lineEdit, 0, "name");
+  m_mapper->addMapping(m_ui->lineEdit, 0);
+
+  /// \note Any change in the model will be
+  /// automatically propagated to the widget and back
+  m_mapper->addMapping(m_personsWidget, static_cast<int>(Columns::PersonsPage), "PersonsPage");
 
   ///model->sort(personColumnIndex, Qt::AscendingOrder);
   //model->setSortRole(static_cast<int>(UserRoles::PersonRole));
   //model->sort(personColumnIndex, Qt::AscendingOrder);
-  filterModel->setSourceModel(model);
+  m_filterModel->setSourceModel(m_model);
   //filterModel->setFilterRole(MissionListModel::MissionNameRole);
   //filterModel->setSortRole(MissionListModel::MissionNameRole);
-  filterModel->setFilterRole(filterRole);
-  filterModel->setSortRole(filterRole);
-  filterModel->setDynamicSortFilter(true);
-  filterModel->setSortCaseSensitivity (Qt::CaseInsensitive);
-  filterModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
+  m_filterModel->setFilterRole(filterRole);
+  m_filterModel->setSortRole(filterRole);
+  m_filterModel->setDynamicSortFilter(true);
+  m_filterModel->setSortCaseSensitivity (Qt::CaseInsensitive);
+  m_filterModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
   //filterModel->
   //filterModel->setFilterFixedString("Bob");
   //filterModel->setFilterFixedString(QVariant::fromValue(personsPage.at(0)).toString());
@@ -639,19 +662,20 @@ ui(new Ui::MainWindow)
   /*fetchRemotePersonsToModel(0, kPersonsPerPage, "");
   fetchRemotePersonsToModel(1, kPersonsPerPage, "");*/
 
-  connect(ui->searchButton, &QPushButton::clicked, [this]()
+  connect(m_ui->searchButton, &QPushButton::clicked, [this]()
   {
     if (!isDisconnected) {
       // TODO: fetch from remote
       // TODO: clear old model cache
-      model->clear();
+      m_model->clear();
+      /// \note we reserved columns for custom data
       int columsCount = static_cast<int>(Columns::TOTAL);
-      model->setColumnCount(columsCount);
+      m_model->setColumnCount(columsCount);
       //model->removeRows(0, model->rowCount());
       //model->removeColumns(0, model->columnCount());
       //qDebug() << "model->rowCount()" << model->rowCount();
       //filterModel->clear();
-      filterModel->invalidate();
+      m_filterModel->invalidate();
 
       //mapper->addMapping(pw, static_cast<int>(Columns::PersonsPage), "PersonsPage");
       // NOTE: reset page to 0
@@ -662,25 +686,27 @@ ui(new Ui::MainWindow)
       //model->sort(0, Qt::AscendingOrder);
 
       // TODO: filter param
-      lastFetchedData = fetchRemotePersonsToModel(0, kPersonsPerPage, ui->searchEdit->text(), filterRole);
+      m_lastFetchedData = fetchRemotePersonsToModel(0, kPersonsPerPage, m_ui->searchEdit->text(), filterRole);
       //lastFetchedData = nullptr;
 
       //qDebug()<<"lastFetchedData->recievedPersonsNum " << lastFetchedData->recievedPagePersonsNum;
       //refreshPageWidgets(lastFetchedData);
 
       //qDebug()<<"clicked" << ui->searchEdit->text();
-      filterModel->setFilterFixedString(ui->searchEdit->text());
+      m_filterModel->setFilterFixedString(m_ui->searchEdit->text());
       //filterModel->filterRole();
       //refreshPageWidgets(lastFetchedData);
 
       //mapper->toFirst(); // refresh
     } else {
       //qDebug()<<"clicked" << ui->searchEdit->text();
-      filterModel->setFilterFixedString(ui->searchEdit->text());
+      m_filterModel->setFilterFixedString(m_ui->searchEdit->text());
       //filterModel->filterRole();
 
       // TODO: filter param
-      lastFetchedData = fetchRemotePersonsToModel(0, kPersonsPerPage, "", filterRole);
+      //m_lastFetchedData = fetchRemotePersonsToModel(0, kPersonsPerPage, "", filterRole);
+      m_lastFetchedData = nullptr;
+
       //refreshPageWidgets(lastFetchedData);
 
       //Q_ASSERT(model->rowCount()); // setCurrentIndex will not work with empty model
@@ -688,91 +714,113 @@ ui(new Ui::MainWindow)
       //refreshPageWidgets(lastFetchedData);
     }
 
-    refreshPageWidgets(lastFetchedData);
+    refreshPageWidgets(m_lastFetchedData);
     // NOTE: empty mapper won't call currentIndexChanged
-    pw->clearPage();
+    m_personsWidget->clearPage();
     //model->dataChanged(QModelIndex(),QModelIndex());
-    if (!lastFetchedData || !lastFetchedData->recievedPagePersonsNum) {
+    if (!m_lastFetchedData || !m_lastFetchedData->recievedPagePersonsNum) {
       qDebug() << "nothing to show";
-      ui->prevButton->setEnabled(false);
-      ui->nextButton->setEnabled(false);
+      m_ui->prevButton->setEnabled(false);
+      m_ui->nextButton->setEnabled(false);
       return;
     }
 
     if (!isDisconnected) {
-      mapper->toFirst();
+      m_mapper->toFirst();
     } else {
-      mapper->setCurrentIndex(mapper->currentIndex());
+      m_mapper->setCurrentIndex(m_mapper->currentIndex());
     }
 
   });
 
-  connect(ui->resetButton, &QPushButton::clicked, [this]()
+  connect(m_ui->resetButton, &QPushButton::clicked, [this]()
   {
+    if (isDisconnected) {
+      m_lastFetchedData = nullptr;
+      return; // TODO
+    }
+
      //qDebug()<<"clicked" << ui->searchEdit->text();
-     ui->searchEdit->setText("");
-     filterModel->setFilterFixedString("");
+     m_ui->searchEdit->setText("");
+     m_filterModel->setFilterFixedString("");
      //filterModel->filterRole();
 
      // TODO: filter param
-     lastFetchedData = fetchRemotePersonsToModel(0, kPersonsPerPage, "", filterRole);
+     m_lastFetchedData = fetchRemotePersonsToModel(0, kPersonsPerPage, "", filterRole);
      //refreshPageWidgets(lastFetchedData);
 
-     Q_ASSERT(model->rowCount()); // setCurrentIndex will not work with empty model
+     Q_ASSERT(m_model->rowCount()); // setCurrentIndex will not work with empty model
      //mapper->setCurrentIndex(mapper->currentIndex()); // refresh
 
-    refreshPageWidgets(lastFetchedData);
+    refreshPageWidgets(m_lastFetchedData);
     // NOTE: empty mapper won't call currentIndexChanged
-    pw->clearPage();
+    m_personsWidget->clearPage();
     //model->dataChanged(QModelIndex(),QModelIndex());
-    if (!lastFetchedData || !lastFetchedData->recievedPagePersonsNum) {
+    if (!m_lastFetchedData || !m_lastFetchedData->recievedPagePersonsNum) {
       qDebug() << "nothing to show";
-      ui->prevButton->setEnabled(false);
-      ui->nextButton->setEnabled(false);
+      m_ui->prevButton->setEnabled(false);
+      m_ui->nextButton->setEnabled(false);
       return;
     }
 
-     mapper->toFirst();
+     m_mapper->toFirst();
   });
 
   //connect(ui->prevButton, &QAbstractButton::clicked, mapper, &QDataWidgetMapper::toPrevious);
   //connect(ui->nextButton, &QAbstractButton::clicked, mapper, &QDataWidgetMapper::toNext);
 
-  connect(ui->prevButton, &QAbstractButton::clicked, [this]() {
-    lastFetchedData = fetchRemotePersonsToModel(mapper->currentIndex() - 1, kPersonsPerPage, ui->searchEdit->text(), filterRole);
+  connect(m_ui->prevButton, &QAbstractButton::clicked, [this]() {
+    if (!isDisconnected) {
+      m_lastFetchedData = fetchRemotePersonsToModel(m_mapper->currentIndex() - 1, kPersonsPerPage, m_ui->searchEdit->text(), filterRole);
+    } else {
+      m_lastFetchedData = nullptr;
+    }
 
-    refreshPageWidgets(lastFetchedData);
+    refreshPageWidgets(m_lastFetchedData);
     // NOTE: empty mapper won't call currentIndexChanged
-    pw->clearPage();
+    m_personsWidget->clearPage();
     //model->dataChanged(QModelIndex(),QModelIndex());
-    if (!lastFetchedData || !lastFetchedData->recievedPagePersonsNum) {
+    if (!m_lastFetchedData || !m_lastFetchedData->recievedPagePersonsNum) {
       qDebug() << "nothing to show";
-      ui->prevButton->setEnabled(false);
-      ui->nextButton->setEnabled(false);
+      m_ui->prevButton->setEnabled(false);
+      m_ui->nextButton->setEnabled(false);
       return;
     }
 
-    mapper->toPrevious();
+    m_mapper->toPrevious();
   });
 
-  connect(ui->nextButton, &QAbstractButton::clicked, [this]() {
-    lastFetchedData = fetchRemotePersonsToModel(mapper->currentIndex() + 1, kPersonsPerPage, ui->searchEdit->text(), filterRole);
+  connect(m_ui->checkBox, &QCheckBox::stateChanged, [this](int state) {
+    isDisconnected = state > 0 ? true : false;
+    qDebug() << "isDisconnected " << isDisconnected;
+  });
 
-    refreshPageWidgets(lastFetchedData);
-    pw->clearPage();
+  connect(m_ui->nextButton, &QAbstractButton::clicked, [this]() {
+    if (!isDisconnected) {
+      m_lastFetchedData = fetchRemotePersonsToModel(m_mapper->currentIndex() + 1, kPersonsPerPage, m_ui->searchEdit->text(), filterRole);
+    } else {
+      m_lastFetchedData = nullptr;
+    }
+
+    refreshPageWidgets(m_lastFetchedData);
+    m_personsWidget->clearPage();
     // NOTE: empty mapper won't call currentIndexChanged
     //model->dataChanged(QModelIndex(),QModelIndex());
-    if (!lastFetchedData || !lastFetchedData->recievedPagePersonsNum) {
+    if (!m_lastFetchedData || !m_lastFetchedData->recievedPagePersonsNum) {
       qDebug() << "nothing to show";
-      ui->prevButton->setEnabled(false);
-      ui->nextButton->setEnabled(false);
+      m_ui->prevButton->setEnabled(false);
+      m_ui->nextButton->setEnabled(false);
       return;
     }
 
-    mapper->toNext();
+    m_mapper->toNext();
   });
 
-  connect(mapper, &QDataWidgetMapper::currentIndexChanged, this, &MainWindow::onMapperIndexChanged);
+  connect(m_model, SIGNAL(dataChanged(QModelIndex,QModelIndex,QVector<int>)), this,SLOT(onModelDataChanged(QModelIndex,QModelIndex,QVector<int>)));
+  connect(m_filterModel, SIGNAL(dataChanged(QModelIndex,QModelIndex,QVector<int>)), this,SLOT(onModelDataChanged(QModelIndex,QModelIndex,QVector<int>)));
+  //connect(m_mapper, SIGNAL(dataChanged(QModelIndex,QModelIndex,QVector<int>)), this,SLOT(onModelDataChanged(QModelIndex,QModelIndex,QVector<int>)));
+
+  connect(m_mapper, &QDataWidgetMapper::currentIndexChanged, this, &MainWindow::onMapperIndexChanged);
 
   if(isDisconnected) {
     /*// TODO: filter param
@@ -781,45 +829,81 @@ ui(new Ui::MainWindow)
     mapper->toFirst();*/
 
     // TODO: reconnect signal
+    return;
   } else {
-    timer = new QTimer;
-    timer->setSingleShot(true);
+    m_timer = new QTimer;
+    m_timer->setSingleShot(true);
     // imitate remote load delay
-    timer->start(1000);
-    QObject::connect(timer, &QTimer::timeout, [this](){
+    m_timer->start(1000);
+    QObject::connect(m_timer, &QTimer::timeout, [this](){
 
         // TODO: filter param
-        lastFetchedData = fetchRemotePersonsToModel(0, kPersonsPerPage, "", filterRole);
-        refreshPageWidgets(lastFetchedData);
+        m_lastFetchedData = fetchRemotePersonsToModel(0, kPersonsPerPage, "", filterRole);
+        refreshPageWidgets(m_lastFetchedData);
 
-        mapper->toFirst();
+        m_mapper->toFirst();
     });
   }
+}
+
+void MainWindow::onModelDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles)
+{
+    //qDebug() << "onModelDataChanged" << roles.count();
+    QModelIndex parent = topLeft.parent();
+    for (int row = topLeft.row(); row <= bottomRight.row(); ++row)
+    {
+        for (int column = topLeft.column(); column <= bottomRight.column(); ++column)
+        {
+            QModelIndex index = m_model->index(row, column, parent);
+            if (QStandardItem *item = m_model->itemFromIndex(index))
+            {
+              for (int rolesI = 0; rolesI < roles.size(); ++rolesI)
+              {
+                qDebug() << "onModelDataChanged" << item->data(roles.at(rolesI));
+                //existingItem->setData(person.name, static_cast<int>(PersonsModel::NameRole));
+                //qDebug() << "onModelDataChanged" << item->data(roles.at(rolesI)).value<QVariant>();
+                //qDebug() << "onModelDataChanged" << qvariant_cast<QString>(item->data(roles.at(rolesI)).value<QVariant>());
+
+                //Person person = qvariant_cast<Person>(item->data(roles.at(rolesI)).value<QVariant>());
+                //qDebug() << "onModelDataChanged" << person.name;
+                //qDebug() << "onModelDataChanged" << person.surname;
+              }
+            }
+        }
+    }
 }
 
 void MainWindow::refreshPageWidgets(std::shared_ptr<fetchedPageData> fetchedPageItems) {
   // remove all page widgets
   {
     QLayoutItem* item;
-    while ( ( item = ui->wrapperLayout->takeAt( 0 ) ) != nullptr )
+    while ( ( item = m_ui->wrapperLayout->takeAt( 0 ) ) != nullptr )
     {
         delete item->widget();
         delete item;
     }
   }
 
-  if (!fetchedPageItems || !lastFetchedData->recievedPagePersonsNum) {
-    qDebug() << "nothing to show...";
-    //ui->prevButton->setEnabled(false);
-    //ui->nextButton->setEnabled(false);
-    return;
+    int pageStart = 0;
+    int totalRetrievedItems = 0;
+    int totalAvailibleItems = 0;
+  if(isDisconnected) {
+    pageStart = 0;
+    totalRetrievedItems = m_filterModel->rowCount();//personsPage.size(); // TODO
+    totalAvailibleItems = m_filterModel->rowCount();
+  } else {
+    if (!fetchedPageItems || !fetchedPageItems->recievedPagePersonsNum) {
+      qDebug() << "nothing to show...";
+      //ui->prevButton->setEnabled(false);
+      //ui->nextButton->setEnabled(false);
+      return;
+    }
+
+    pageStart = fetchedPageItems->requestedPageNum * fetchedPageItems->requestedPageSize;
+    totalRetrievedItems = fetchedPageItems->recievedPagePersonsNum;//personsPage.size(); // TODO
+    totalAvailibleItems = std::min(totalRetrievedItems, fetchedPageItems->requestedPageSize);
   }
 
-  int pageStart = fetchedPageItems->requestedPageNum * fetchedPageItems->requestedPageSize;
-
-  int totalRetrievedItems = fetchedPageItems->recievedPagePersonsNum;//personsPage.size(); // TODO
-
-  int totalAvailibleItems = std::min(totalRetrievedItems, fetchedPageItems->requestedPageSize);
   //for (int i = 0; i < fetchedPageItems->requestedPageSize; i++) {
   for (int i = 0; i < totalAvailibleItems; i++) {
     /*const QModelIndex index = model->index(row, i);
@@ -837,12 +921,12 @@ void MainWindow::refreshPageWidgets(std::shared_ptr<fetchedPageData> fetchedPage
       continue;
     }*/
 
-    const QModelIndex index = filterModel->index(itemRow, personColumnIndex);
+    const QModelIndex index = m_filterModel->index(itemRow, personColumnIndex);
 
     //Person person = qvariant_cast<Person>(filterModel->data(index, static_cast<int>(PersonsModel::NameRole)).value<QVariant>());
     Person person;
-    person.name = qvariant_cast<QString>(filterModel->data(index, static_cast<int>(PersonsModel::NameRole)).value<QVariant>());
-    person.surname = qvariant_cast<QString>(filterModel->data(index, static_cast<int>(PersonsModel::SurnameRole)).value<QVariant>());
+    person.name = qvariant_cast<QString>(m_filterModel->data(index, static_cast<int>(PersonsModel::NameRole)).value<QVariant>());
+    person.surname = qvariant_cast<QString>(m_filterModel->data(index, static_cast<int>(PersonsModel::SurnameRole)).value<QVariant>());
     //qDebug() << "person.name " << person.name;
     /*QStandardItem* item = filterModel->data(index, static_cast<int>(UserRoles::PersonRole)).value<QStandardItem*>();
     if (item) {
@@ -863,7 +947,7 @@ void MainWindow::refreshPageWidgets(std::shared_ptr<fetchedPageData> fetchedPage
 
       item->setSurname(person.surname);
 
-      ui->wrapperLayout->addWidget(item);
+      m_ui->wrapperLayout->addWidget(item);
 
       //QLineEdit* boundWidget = static_cast<QLineEdit*>(item->getPersonNameWidget());
       //boundWidget->setText(person.name);
@@ -879,6 +963,81 @@ void MainWindow::refreshPageWidgets(std::shared_ptr<fetchedPageData> fetchedPage
   }
 }
 
+/*void MainWindow::onCheckboxChanged(const int state)
+{
+  qDebug() << "onCheckboxChanged " << state;
+}*/
+
+void MainWindow::onPersonsPageChanged(const QVariant& val) {
+  qDebug() << "MainWindow onPersonsPageChanged " << val;
+
+  if(!m_lastFetchedData) {
+    return;
+  }
+
+  int pageNum = m_lastFetchedData->requestedPageNum;
+  int pageStart = pageNum * m_lastFetchedData->requestedPageSize;
+  int itemTotalIndex = pageStart;
+  int itemPageIndex = pageNum;
+
+  QList<Person> newPersonsPage;
+
+  for(auto& page : val.toList()) {
+    Person person = qvariant_cast<Person>(page);
+    qDebug() << "onPersonsPageChanged " << person.name;
+    qDebug() << "onPersonsPageChanged " << person.surname;
+
+    QModelIndex pageIndexPerson = m_model->index(itemTotalIndex, personColumnIndex);
+    m_model->setData(pageIndexPerson, val, static_cast<int>(PersonsModel::PersonVariantRole));
+
+    m_model->setData(pageIndexPerson, QVariant::fromValue(person.name), Qt::EditRole);
+    m_model->setData(pageIndexPerson, QVariant::fromValue(person), static_cast<int>(PersonsModel::PersonVariantRole));
+    m_model->setData(pageIndexPerson, QVariant::fromValue(person.name), static_cast<int>(PersonsModel::NameRole));
+    m_model->setData(pageIndexPerson, QVariant::fromValue(person.surname), static_cast<int>(PersonsModel::SurnameRole));
+
+    //QModelIndex pageIndexPersonsPage1 = m_model->index(itemTotalIndex, static_cast<int>(Columns::PersonsPage));
+    //m_model->setData(pageIndexPersonsPage1, QVariant(""), Qt::EditRole);
+
+    newPersonsPage.push_back(person);
+
+    //ui->scrollAreaWidgetContentsLayout->addWidget();
+    itemTotalIndex++;
+    itemPageIndex++;
+  }
+
+    refreshPageWidgets(m_lastFetchedData);
+
+    QModelIndex pageIndexPersonsPage = m_model->index(pageNum, static_cast<int>(Columns::PersonsPage));
+    m_model->setData(pageIndexPersonsPage, QVariant::fromValue(newPersonsPage), Qt::EditRole);
+    //m_model->setData(pageIndexPersonsPage, QVariant(""), Qt::EditRole);
+
+        //QVector<int> roles;
+        //roles.push_back(static_cast<int>(PersonsModel::Roles::PersonVariantRole));
+        //roles.push_back(static_cast<int>(PersonsModel::Roles::NameRole));
+        //roles.push_back(static_cast<int>(PersonsModel::Roles::SurnameRole));
+        //roles.push_back(Qt::EditRole);
+        //m_model->dataChanged(pageIndexPersonsPage, pageIndexPersonsPage, roles);
+
+  //m_personsWidget->clearPage();
+  //m_personsWidget->refreshPageWidgets();
+
+      //m_mapper->setCurrentIndex(m_mapper->currentIndex());
+
+        /*QModelIndex existingIndexPerson = m_model->index(modelRow, personColumnIndex);
+        QModelIndex existingIndexPersonPage = m_model->index(modelRow, static_cast<int>(Columns::PersonsPage));
+        QVector<int> roles;
+        roles.push_back(static_cast<int>(PersonsModel::Roles::PersonVariantRole));
+        roles.push_back(static_cast<int>(PersonsModel::Roles::NameRole));
+        roles.push_back(static_cast<int>(PersonsModel::Roles::SurnameRole));
+        //m_model->dataChanged(existingIndexPerson, existingIndexPerson, roles);
+        //m_model->dataChanged(existingIndexPersonPage, existingIndexPersonPage, roles);
+        m_model->setData(existingIndexPerson, QVariant::fromValue(person.name), Qt::EditRole);
+        m_model->setData(existingIndexPerson, QVariant::fromValue(person), static_cast<int>(PersonsModel::PersonVariantRole));
+        m_model->setData(existingIndexPerson, QVariant::fromValue(person.name), static_cast<int>(PersonsModel::NameRole));
+        m_model->setData(existingIndexPerson, QVariant::fromValue(person.surname), static_cast<int>(PersonsModel::SurnameRole));
+        //m_model->setData()*/
+}
+
 void MainWindow::onMapperIndexChanged(int pageNum) {
   //qDebug() << "onMapperIndexChanged for page " << pageNum;
 
@@ -889,7 +1048,7 @@ void MainWindow::onMapperIndexChanged(int pageNum) {
 */
   //refreshPageWidgets(lastFetchedData);
 
-  if (!lastFetchedData || !lastFetchedData->recievedPagePersonsNum) {
+  if (!m_lastFetchedData || !m_lastFetchedData->recievedPagePersonsNum) {
     qDebug() << "nothing to show";
     //ui->prevButton->setEnabled(false);
     //ui->nextButton->setEnabled(false);
@@ -899,22 +1058,22 @@ void MainWindow::onMapperIndexChanged(int pageNum) {
   //int pageStart = lastFetchedData->requestedPageNum * lastFetchedData->requestedPageSize;
   //int totalPersons = filterModel->rowCount() - 1;
   //int totalPersons = lastFetchedData->totalPages * lastFetchedData->requestedPageSize;
-  int totalPersons = lastFetchedData->totalItems;
-  int recievedPersons = lastFetchedData->recievedPagePersonsNum;
-  int pageStart = lastFetchedData->requestedPageNum * lastFetchedData->requestedPageSize;
+  int totalPersons = m_lastFetchedData->totalItems;
+  int recievedPersons = m_lastFetchedData->recievedPagePersonsNum;
+  int pageStart = m_lastFetchedData->requestedPageNum * m_lastFetchedData->requestedPageSize;
   //ui->prevButton->setEnabled(pageStart > 0 && pageStart < totalPersons);
   //ui->nextButton->setEnabled((pageStart + lastFetchedData->requestedPageSize) < totalPersons);
 
   //qDebug() << "onMapperIndexChanged requestedPageNum " << lastFetchedData->requestedPageNum;
   //qDebug() << "onMapperIndexChanged totalPages " << lastFetchedData->totalPages;
 
-  ui->prevButton->setEnabled(lastFetchedData->requestedPageNum > 0);
-  ui->nextButton->setEnabled(lastFetchedData->requestedPageNum < (lastFetchedData->totalPages - 1));
+  m_ui->prevButton->setEnabled(m_lastFetchedData->requestedPageNum > 0);
+  m_ui->nextButton->setEnabled(m_lastFetchedData->requestedPageNum < (m_lastFetchedData->totalPages - 1));
 }
 
 MainWindow::~MainWindow()
 {
-  delete ui;
+  delete m_ui;
 }
 
 PersonsModel::PersonsModel(int rows, int columns, QObject *parent) : QStandardItemModel(rows, columns, parent)
@@ -922,6 +1081,7 @@ PersonsModel::PersonsModel(int rows, int columns, QObject *parent) : QStandardIt
 
 }
 
+#ifdef customdata
 QVariant PersonsModel::data(const QModelIndex &index, int role) const
 {
   /*QStandardItemModelPrivate *d = reinterpret_cast<QStandardItemModelPrivate *>(QStandardItemModel::d_ptr.data());
@@ -933,12 +1093,8 @@ QVariant PersonsModel::data(const QModelIndex &index, int role) const
   if (!index.isValid())
     return QVariant();
 
-  if(role == Qt::EditRole)
-  {
-    qDebug() << "Qt::EditRole";
-  }
-
-  if (index.column() == static_cast<int>(Columns::PersonsPage)) {
+  /// \note QDataWidgetMapper uses EditRole to populate mappings
+  if (role == Qt::EditRole && index.column() == static_cast<int>(Columns::PersonsPage)) {
     QList<QVariant> page;
     int pageStartCursor = index.row() * kPersonsPerPage;
     qDebug() << "pageStartCursor" << pageStartCursor;
@@ -949,7 +1105,7 @@ QVariant PersonsModel::data(const QModelIndex &index, int role) const
       //QString item = qvariant_cast<QString>(itm->data(PersonsModel::Roles::PersonVariantRole).value<QVariant>());
       QVariant item = itm->data(PersonsModel::Roles::PersonVariantRole).value<QVariant>();
 
-      qDebug() << "index.column()";
+      //qDebug() << "index.column()";
       page.push_back(item);
     }
     return QVariant(page);
@@ -986,6 +1142,7 @@ QVariant PersonsModel::data(const QModelIndex &index, int role) const
 
   return QVariant();
 }
+#endif
 
 void PersonsModel::addPerson(const QString &name)
 {

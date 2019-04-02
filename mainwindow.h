@@ -84,6 +84,8 @@ enum class Columns  {
   , TOTAL
 };
 
+#define customdata 1
+
 QT_FORWARD_DECLARE_CLASS(QStandardItemModelPrivate)
 
 class PersonsModel : public QStandardItemModel
@@ -104,7 +106,9 @@ public:
 
     explicit PersonsModel(int rows, int columns, QObject *parent = nullptr);
 
+#ifdef customdata
     QVariant data(const QModelIndex &index, int role) const override;
+#endif
 
     //QVariant data1(const QModelIndex &index, int role) const;
 
@@ -150,6 +154,14 @@ private:
     //QMap<QString, Person> personMap;
 };
 
+/*class QDataWidgetMapperEx : public QMainWindow
+{
+Q_OBJECT
+
+public:
+  explicit QDataWidgetMapperEx(QObject *parent = nullptr);
+};*/
+
 class MainWindow : public QMainWindow
 {
 Q_OBJECT
@@ -159,21 +171,37 @@ public:
   ~MainWindow();
 
   std::shared_ptr<fetchedPageData> fetchRemotePersonsToModel(int page, int personsPerPage, const QString& filter, const PersonsModel::Roles& filterRole);
+
   int fetchRemotePageCount(int pageSize);
+
   void refreshPageWidgets(std::shared_ptr<fetchedPageData> fetchedPageItems);
 
+
 public slots:
+  //void onCheckboxChanged(const int state);
+
+  void onPersonsPageChanged(const QVariant& val);
+
   void onMapperIndexChanged(int row);
 
+  void onModelDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles);
 private:
-  Ui::MainWindow *ui;
-  //QStandardItemModel *model;
-  PersonsModel *model;
-  QDataWidgetMapper *mapper;
-  QSortFilterProxyModel* filterModel;
-  QTimer* timer;
-  std::shared_ptr<fetchedPageData> lastFetchedData;
-  PersonPageWidget* pw;
+  Ui::MainWindow *m_ui;
+
+  PersonsModel *m_model;
+
+  /// \brief Provides automatic data-binding between custom view and model parts
+  QDataWidgetMapper *m_mapper;
+
+  /// \brief Provides support for filtering data passed between model and view
+  /// Can be used to restructure the data for a view without transformation of underlying data
+  QSortFilterProxyModel* m_filterModel;
+
+  QTimer* m_timer;
+
+  std::shared_ptr<fetchedPageData> m_lastFetchedData;
+
+  PersonPageWidget* m_personsWidget;
 };
 
 #endif // MAINWINDOW_H

@@ -23,8 +23,14 @@ QVariant PersonPageWidget::PersonsPage() const
 
 void PersonPageWidget::setPersonsPage(const QVariant& val)
 {
+  qDebug() << "setPersonsPage... ";
+
+  clearPage(); // resets m_PersonsPage
+
+  m_PersonsPage = val;
+
   QList<QVariant> pageItems = val.toList();
-  //qDebug() << "setPersonsPage " << pageItems.size();
+  qDebug() << "setPersonsPage " << pageItems.size();
   /*for(auto& page : pageItems) {
     Person person = qvariant_cast<Person>(page);
     //qDebug() << "setPersonsPage " << person.name;
@@ -45,23 +51,46 @@ void PersonPageWidget::setPersonsPage(const QVariant& val)
 }
 
 void PersonPageWidget::clearPage() {
+
+  m_PersonsPage = QVariant();
+
   qDebug() << "PersonPageWidget clearPage";
   // remove all page widgets
   {
     QLayoutItem* item;
     while ( ( item = ui->scrollAreaWidgetContentsLayout->takeAt( 0 ) ) != nullptr )
     {
-        delete item->widget();
+        //delete item->widget();
+        item->widget()->deleteLater();
+        //item->deleteLater();
         delete item;
     }
   }
 }
 
+void PersonPageWidget::refreshPageWidgets() {
+  QList<QVariant> pageItems = m_PersonsPage.toList();
+  refreshPageWidgets(pageItems);
+}
 
-void PersonPageWidget::refreshPageWidgets(QList<QVariant> pageItems) {
+/**
+ * \brief We use QScrollArea with QVBoxLayout because we
+ * need interaction with custom widgets. Widgets also can be animated.
+ * \note We managed to use QDataWidgetMapper to use custom widgets
+ * with custom model. We pass custom data in model columns,
+ * see data(const QModelIndex &index, int role) method of custom model.
+ * \note We DON'T use any of QTreeView and other such classes.
+ * Qt MVC is designed to process big amount of cognate data.
+ * It is not designed to provide widget-based interaction.
+ * So, if you want to "assign" one widget to each item and to interact with them,
+ * than you will have a lot of problems with implementing delegates
+ * (tracking mouse events, providing editor's factory).
+ * You may create your own delegates with custom drawing
+ * and custom processing of mouse events,
+ * but it's much easy to use simple widgets.
+ */
+void PersonPageWidget::refreshPageWidgets(QList<QVariant>& pageItems) {
   qDebug() << "PersonPageWidget refreshPageWidgets " << pageItems.size();
-
-  clearPage();
 
   for (int i = 0; i < pageItems.size(); i++) {
     //const QModelIndex index = filterModel->index(itemRow, personColumnIndex);
@@ -91,9 +120,30 @@ void PersonPageWidget::refreshPageWidgets(QList<QVariant> pageItems) {
       //item->setMinimumHeight(150);
       //item->setSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::MinimumExpanding);
 
+      /*connect(item, SIGNAL(nameChanged(QString)),
+            this, SLOT(onPersonsNameChanged(QString)));*/
+
       item->setName(person.name);
 
+      //item->setPageIndex(i);
+
       item->setSurname(person.surname);
+
+      connect(item, &PersonItemWidget::nameChanged, item, [this](const QString& text) {
+        int itemPageIndex = 0;
+
+        qDebug() << "connect PersonItemWidget::nameChanged " << text;
+        QList<QVariant> pageItems = m_PersonsPage.toList();
+        Person person = qvariant_cast<Person>(pageItems.at(itemPageIndex));
+        person.name = text;
+        pageItems.replace(itemPageIndex, QVariant::fromValue(person));
+
+        //Person person1 = qvariant_cast<Person>(pageItems.at(itemPageIndex));
+        //qDebug() << "connect PersonItemWidget::nameChanged " << person1.name;
+
+        m_PersonsPage = QVariant::fromValue(pageItems);
+        emit PersonsPageModified(m_PersonsPage);
+      });
 
       ui->scrollAreaWidgetContentsLayout->addWidget(item);
 
