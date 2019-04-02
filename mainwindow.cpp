@@ -591,7 +591,7 @@ m_ui(new Ui::MainWindow)
 
   /// \note Any change in the model will be
   /// automatically propagated to the widget and back
-  m_mapper->addMapping(m_personsWidget, static_cast<int>(Columns::PersonsPage), "PersonsPage");
+  m_mapper->addMapping(m_personsWidget, static_cast<int>(Columns::PersonsPage), "m_PersonsPage");
 
   ///model->sort(personColumnIndex, Qt::AscendingOrder);
   //model->setSortRole(static_cast<int>(UserRoles::PersonRole));
@@ -677,7 +677,7 @@ m_ui(new Ui::MainWindow)
       //filterModel->clear();
       m_filterModel->invalidate();
 
-      //mapper->addMapping(pw, static_cast<int>(Columns::PersonsPage), "PersonsPage");
+      //mapper->addMapping(pw, static_cast<int>(Columns::PersonsPage), "m_PersonsPage");
       // NOTE: reset page to 0
       //fetchRemotePersons(0, kPersonsPerPage, ui->searchEdit->text());
       //fetchRemotePersonsToModel(0, kPersonsPerPage);
@@ -982,8 +982,11 @@ void MainWindow::onPersonsPageChanged(const QVariant& val) {
 
   QList<Person> newPersonsPage;
 
-  for(auto& page : val.toList()) {
-    Person person = qvariant_cast<Person>(page);
+  PersonsPage pp = qvariant_cast<PersonsPage>(val);
+  QList<PersonsPageItem> pageItems = pp.items;
+
+  for(PersonsPageItem& pageItem : pageItems) {
+    const Person& person = pageItem.person;
     qDebug() << "onPersonsPageChanged " << person.name;
     qDebug() << "onPersonsPageChanged " << person.surname;
 
@@ -1095,20 +1098,32 @@ QVariant PersonsModel::data(const QModelIndex &index, int role) const
 
   /// \note QDataWidgetMapper uses EditRole to populate mappings
   if (role == Qt::EditRole && index.column() == static_cast<int>(Columns::PersonsPage)) {
-    QList<QVariant> page;
+    PersonsPage pPage;
+
+    QList<PersonsPageItem> page;
+
     int pageStartCursor = index.row() * kPersonsPerPage;
+    pPage.pageStartCursor = pageStartCursor;
+    pPage.pageId = index.row();
     qDebug() << "pageStartCursor" << pageStartCursor;
     int availiblePageItems = std::min(rowCount(), pageStartCursor + kPersonsPerPage);
     for (int i = pageStartCursor; i < availiblePageItems; i++) {
+      PersonsPageItem pItem;
+
       QModelIndex index_person = this->index(i, static_cast<int>(Columns::Person));
       QStandardItem* itm = this->itemFromIndex(index_person);
       //QString item = qvariant_cast<QString>(itm->data(PersonsModel::Roles::PersonVariantRole).value<QVariant>());
       QVariant item = itm->data(PersonsModel::Roles::PersonVariantRole).value<QVariant>();
 
-      //qDebug() << "index.column()";
-      page.push_back(item);
+      pItem.person = qvariant_cast<Person>(item);
+
+      //qDebug() << "pItem.person" << pItem.person.name;
+
+      pItem.indexOnPage = pageStartCursor;
+
+      pPage.items.push_back(pItem);
     }
-    return QVariant(page);
+    return QVariant::fromValue(pPage);
   } else {
     QStandardItem* itm = this->itemFromIndex(index);
 

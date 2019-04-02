@@ -16,7 +16,7 @@ PersonPageWidget::~PersonPageWidget()
   delete ui;
 }
 
-QVariant PersonPageWidget::PersonsPage() const
+QVariant PersonPageWidget::getPersonsPage() const
 {
   return m_PersonsPage;
 }
@@ -29,10 +29,23 @@ void PersonPageWidget::setPersonsPage(const QVariant& val)
 
   m_PersonsPage = val;
 
-  QList<QVariant> pageItems = val.toList();
-  qDebug() << "setPersonsPage " << pageItems.size();
-  /*for(auto& page : pageItems) {
+  PersonsPage pp = qvariant_cast<PersonsPage>(val);
+
+  QList<PersonsPageItem> pageItems = pp.items;
+  for(auto& page : pageItems) {
+    Person person = page.person;
+    //PersonPage p;
+    qDebug() << "setPersonsPage " << person.name;
+    qDebug() << "setPersonsPage " << person.surname;
+    //ui->scrollAreaWidgetContentsLayout->addWidget();
+  }
+
+  //QList<QVariant> pageItems = val.toList();
+
+  /*qDebug() << "setPersonsPage " << pageItems.size();
+  for(auto& page : pageItems) {
     Person person = qvariant_cast<Person>(page);
+    //PersonPage p;
     //qDebug() << "setPersonsPage " << person.name;
     //qDebug() << "setPersonsPage " << person.surname;
     //ui->scrollAreaWidgetContentsLayout->addWidget();
@@ -47,7 +60,7 @@ void PersonPageWidget::setPersonsPage(const QVariant& val)
   m_personName = val;
   ui->lineEdit->setText(val);*/
 
-  emit PersonsPageChanged(val);
+  emit personsPageChanged(val);
 }
 
 void PersonPageWidget::clearPage() {
@@ -69,7 +82,11 @@ void PersonPageWidget::clearPage() {
 }
 
 void PersonPageWidget::refreshPageWidgets() {
-  QList<QVariant> pageItems = m_PersonsPage.toList();
+  //QList<QVariant> pageItems = m_PersonsPage.toList();
+
+  PersonsPage pp = qvariant_cast<PersonsPage>(m_PersonsPage);
+  QList<PersonsPageItem> pageItems = pp.items;
+
   refreshPageWidgets(pageItems);
 }
 
@@ -89,13 +106,13 @@ void PersonPageWidget::refreshPageWidgets() {
  * and custom processing of mouse events,
  * but it's much easy to use simple widgets.
  */
-void PersonPageWidget::refreshPageWidgets(QList<QVariant>& pageItems) {
+void PersonPageWidget::refreshPageWidgets(QList<PersonsPageItem>& pageItems) {
   qDebug() << "PersonPageWidget refreshPageWidgets " << pageItems.size();
 
   for (int i = 0; i < pageItems.size(); i++) {
     //const QModelIndex index = filterModel->index(itemRow, personColumnIndex);
 
-    Person person = qvariant_cast<Person>(pageItems.at(i));
+    Person person = pageItems.at(i).person; //qvariant_cast<Person>(pageItems.at(i));
     //qDebug() << "setPersonsPage " << person.name;
     //qDebug() << "setPersonsPage " << person.surname;
 
@@ -125,23 +142,33 @@ void PersonPageWidget::refreshPageWidgets(QList<QVariant>& pageItems) {
 
       item->setName(person.name);
 
-      //item->setPageIndex(i);
+      item->setPageIndex(i);
 
       item->setSurname(person.surname);
 
-      connect(item, &PersonItemWidget::nameChanged, item, [this](const QString& text) {
-        int itemPageIndex = 0;
+      connect(item, &PersonItemWidget::nameChanged, item, [this, item](const QString& text) {
+        int itemPageIndex = item->getPageIndex();
 
         qDebug() << "connect PersonItemWidget::nameChanged " << text;
-        QList<QVariant> pageItems = m_PersonsPage.toList();
-        Person person = qvariant_cast<Person>(pageItems.at(itemPageIndex));
-        person.name = text;
-        pageItems.replace(itemPageIndex, QVariant::fromValue(person));
+
+        //QList<QVariant> pageItems = m_PersonsPage.toList();
+
+        PersonsPage pp = qvariant_cast<PersonsPage>(m_PersonsPage);
+        QList<PersonsPageItem> pageItems = pp.items;
+
+        //QList<PersonsPageItem> pageItems = m_PersonsPage.toList();
+
+        PersonsPageItem pPItem = pageItems.at(itemPageIndex);
+        //Person person = pageItems.at(itemPageIndex).person;
+        //person.name = text;
+        pPItem.person.name = text;
+        pageItems.replace(itemPageIndex, pPItem);
 
         //Person person1 = qvariant_cast<Person>(pageItems.at(itemPageIndex));
         //qDebug() << "connect PersonItemWidget::nameChanged " << person1.name;
 
-        m_PersonsPage = QVariant::fromValue(pageItems);
+        pp.items = pageItems;
+        m_PersonsPage = QVariant::fromValue(pp);
         emit PersonsPageModified(m_PersonsPage);
       });
 

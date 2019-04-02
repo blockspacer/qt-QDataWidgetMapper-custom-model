@@ -38,6 +38,11 @@ void PersonItemWidget::setSurname(const QString& text) {
   refreshTexts();
 }
 
+void PersonItemWidget::setPageIndex(int pageIndex)
+{
+  m_pageIndex = pageIndex;
+}
+
 
 QWidget* PersonItemWidget::getPersonNameWidget() {
   return ui->PersonNameEdit;

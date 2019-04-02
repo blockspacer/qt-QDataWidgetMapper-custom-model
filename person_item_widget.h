@@ -19,6 +19,12 @@ public:
   void setName(const QString& text);
   void setSurname(const QString &text);
 
+  void setPageIndex(int pageIndex);
+
+  int getPageIndex() const {
+    return m_pageIndex;
+  };
+
   QString getName() const {
     return m_name;
   };
@@ -35,6 +41,7 @@ private:
   Ui::Item *ui;
   QString m_name;
   QString m_surname;
+  int m_pageIndex;
 
   void refreshTexts();
 };

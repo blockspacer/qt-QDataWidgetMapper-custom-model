@@ -18,13 +18,13 @@ class PersonPageWidget : public QWidget
 Q_OBJECT
 
 /// \note Mapped Property, see QDataWidgetMapper
-Q_PROPERTY(QVariant PersonsPage READ PersonsPage WRITE setPersonsPage NOTIFY PersonsPageChanged USER true)
+Q_PROPERTY(QVariant m_PersonsPage READ getPersonsPage WRITE setPersonsPage NOTIFY personsPageChanged USER true)
 
 public:
   explicit PersonPageWidget(QWidget *parent = nullptr);
   ~PersonPageWidget();
 
-  QVariant PersonsPage() const;
+  QVariant getPersonsPage() const;
 
   void clearPage();
 
@@ -33,12 +33,12 @@ public slots:
     void setPersonsPage(const QVariant& val);
 
 signals:
-    void PersonsPageChanged(const QVariant& val);
+    void personsPageChanged(const QVariant& val);
     void PersonsPageModified(const QVariant& val);
 
 
 private:
-  void refreshPageWidgets(QList<QVariant>& pageItems);
+  void refreshPageWidgets(QList<PersonsPageItem>& pageItems);
 
 private:
   Ui::PersonPageWidget *ui;

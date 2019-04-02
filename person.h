@@ -36,3 +36,21 @@ struct Person {
 // allow type usage with QVariant
 Q_DECLARE_METATYPE(Person);
 //Q_DECLARE_METATYPE(Person*);
+
+struct PersonsPageItem {
+  Person person;
+  int indexOnPage; // starts from 0
+};
+
+// allow type usage with QVariant
+Q_DECLARE_METATYPE(PersonsPageItem);
+
+struct PersonsPage {
+  int pageStartCursor; // starts from 0, step = pagesize
+  int pageId; // starts from 0, step = 1
+  QList<PersonsPageItem> items;
+};
+
+// allow type usage with QVariant
+Q_DECLARE_METATYPE(PersonsPage);
+Q_DECLARE_METATYPE(QList<PersonsPageItem>);
