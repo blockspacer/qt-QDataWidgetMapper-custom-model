@@ -465,14 +465,14 @@ std::shared_ptr<fetchedPageData> MainWindow::fetchRemotePersonsToModel(int page,
         existingItem->setData(person.surname, static_cast<int>(PersonsModel::SurnameRole));
         */
         QModelIndex existingIndexPerson = m_model->index(modelRow, personColumnIndex);
-        QModelIndex existingIndexPersonPage = m_model->index(modelRow, static_cast<int>(Columns::PersonsPage));
+        //QModelIndex existingIndexPersonPage = m_model->index(modelRow, static_cast<int>(Columns::PersonsPage));
         /*QVector<int> roles;
         roles.push_back(static_cast<int>(PersonsModel::Roles::PersonVariantRole));
         roles.push_back(static_cast<int>(PersonsModel::Roles::NameRole));
         roles.push_back(static_cast<int>(PersonsModel::Roles::SurnameRole));*/
         //m_model->dataChanged(existingIndexPerson, existingIndexPerson, roles);
         //m_model->dataChanged(existingIndexPersonPage, existingIndexPersonPage, roles);
-        m_model->setData(existingIndexPerson, QVariant::fromValue(person.name), Qt::EditRole);
+        ///m_model->setData(existingIndexPerson, QVariant::fromValue(person.name), Qt::EditRole);
         m_model->setData(existingIndexPerson, QVariant::fromValue(person), static_cast<int>(PersonsModel::PersonVariantRole));
         m_model->setData(existingIndexPerson, QVariant::fromValue(person.name), static_cast<int>(PersonsModel::NameRole));
         m_model->setData(existingIndexPerson, QVariant::fromValue(person.surname), static_cast<int>(PersonsModel::SurnameRole));
@@ -543,6 +543,8 @@ std::shared_ptr<fetchedPageData> MainWindow::fetchRemotePersonsToModel(int page,
   qDebug() << "result->recievedPersonsNum " << result->recievedPersonsNum;
   result->requestedPageSize = kPersonsPerPage;*/
 
+  //m_mapper->addMapping(m_ui->lineEdit, 0);
+
   return result;
 }
 
@@ -571,7 +573,9 @@ m_ui(new Ui::MainWindow)
   //model->headerData(0 , Qt::Horizontal, static_cast<int>(PersonsModel::Roles::NameRole));
 
   m_mapper = new QDataWidgetMapper(this);
-  m_mapper->setSubmitPolicy(QDataWidgetMapper::ManualSubmit);
+  //m_mapper->setSubmitPolicy(QDataWidgetMapper::ManualSubmit);
+  /// \note allows two-way data editing
+  m_mapper->setSubmitPolicy(QDataWidgetMapper::AutoSubmit);
   //mapper->setModel(model);
   m_mapper->setOrientation(Qt::Horizontal);
 
@@ -584,10 +588,12 @@ m_ui(new Ui::MainWindow)
   //filterModel->sourceModel();
 
   m_filterModel = new PersonSortFilterProxyModel();
-  m_mapper->setModel(m_filterModel);
+
+  //m_mapper->setModel(m_filterModel);
+  m_mapper->setModel(m_model);
 
   //m_mapper->addMapping(m_ui->lineEdit, 0, "name");
-  m_mapper->addMapping(m_ui->lineEdit, 0);
+  m_mapper->addMapping(m_ui->lineEdit, 0, "text");
 
   /// \note Any change in the model will be
   /// automatically propagated to the widget and back
@@ -980,7 +986,7 @@ void MainWindow::onPersonsPageChanged(const QVariant& val) {
   int itemTotalIndex = pageStart;
   int itemPageIndex = pageNum;
 
-  QList<Person> newPersonsPage;
+  //QList<Person> newPersonsPage;
 
   PersonsPage pp = qvariant_cast<PersonsPage>(val);
   QList<PersonsPageItem> pageItems = pp.items;
@@ -993,7 +999,7 @@ void MainWindow::onPersonsPageChanged(const QVariant& val) {
     QModelIndex pageIndexPerson = m_model->index(itemTotalIndex, personColumnIndex);
     m_model->setData(pageIndexPerson, val, static_cast<int>(PersonsModel::PersonVariantRole));
 
-    m_model->setData(pageIndexPerson, QVariant::fromValue(person.name), Qt::EditRole);
+    ///m_model->setData(pageIndexPerson, QVariant::fromValue(person.name), Qt::EditRole);
     m_model->setData(pageIndexPerson, QVariant::fromValue(person), static_cast<int>(PersonsModel::PersonVariantRole));
     m_model->setData(pageIndexPerson, QVariant::fromValue(person.name), static_cast<int>(PersonsModel::NameRole));
     m_model->setData(pageIndexPerson, QVariant::fromValue(person.surname), static_cast<int>(PersonsModel::SurnameRole));
@@ -1001,7 +1007,7 @@ void MainWindow::onPersonsPageChanged(const QVariant& val) {
     //QModelIndex pageIndexPersonsPage1 = m_model->index(itemTotalIndex, static_cast<int>(Columns::PersonsPage));
     //m_model->setData(pageIndexPersonsPage1, QVariant(""), Qt::EditRole);
 
-    newPersonsPage.push_back(person);
+    //newPersonsPage.push_back(person);
 
     //ui->scrollAreaWidgetContentsLayout->addWidget();
     itemTotalIndex++;
@@ -1010,8 +1016,16 @@ void MainWindow::onPersonsPageChanged(const QVariant& val) {
 
     refreshPageWidgets(m_lastFetchedData);
 
+    PersonsPage pPage = m_model->buildPersonsPage(pageNum, pageStart, kPersonsPerPage);
+
     QModelIndex pageIndexPersonsPage = m_model->index(pageNum, static_cast<int>(Columns::PersonsPage));
-    m_model->setData(pageIndexPersonsPage, QVariant::fromValue(newPersonsPage), Qt::EditRole);
+    //m_model->setData(pageIndexPersonsPage, QVariant::fromValue(newPersonsPage), Qt::EditRole);
+
+
+    /// \note: we don`t store page data, we will build page data dynamically
+    /// setData used to refresh Columns::PersonsPage
+    m_model->setData(pageIndexPersonsPage, QVariant::fromValue(pPage), Qt::EditRole);
+
     //m_model->setData(pageIndexPersonsPage, QVariant(""), Qt::EditRole);
 
         //QVector<int> roles;
@@ -1084,6 +1098,92 @@ PersonsModel::PersonsModel(int rows, int columns, QObject *parent) : QStandardIt
 
 }
 
+PersonsPage PersonsModel::buildPersonsPage(int pageId, int pageStartCursor, int itemsPerPage) const {
+  PersonsPage pPage;
+
+  QList<PersonsPageItem> page;
+
+  pPage.pageStartCursor = pageStartCursor;
+  pPage.pageId = pageId;
+  qDebug() << "pageStartCursor" << pageStartCursor;
+  int availiblePageItems = std::min(rowCount(), pageStartCursor + itemsPerPage);
+  for (int i = pageStartCursor; i < availiblePageItems; i++) {
+    PersonsPageItem pItem;
+
+    QModelIndex index_person = this->index(i, static_cast<int>(Columns::Person));
+    QStandardItem* itm = this->itemFromIndex(index_person);
+    //QString item = qvariant_cast<QString>(itm->data(PersonsModel::Roles::PersonVariantRole).value<QVariant>());
+    QVariant item = itm->data(PersonsModel::Roles::PersonVariantRole).value<QVariant>();
+
+    pItem.person = qvariant_cast<Person>(item);
+
+    //qDebug() << "pItem.person" << pItem.person.name;
+
+    pItem.indexOnPage = pageStartCursor;
+
+    pPage.items.push_back(pItem);
+  }
+
+  return pPage;
+}
+
+bool PersonsModel::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+  qDebug() << "setData PersonsModel " << value << value.toString();
+
+  if (!index.isValid())
+    return false;
+
+   if (role == Qt::EditRole && index.column() == static_cast<int>(Columns::PersonsPage))
+   {
+       /*qDebug() << "setData PersonsModel::EditRole " << value << value.toString();
+       QStandardItem * item = this->item(index.row(), index.column());
+       if(item) {
+        item->setData(value, role);//Qt::UserRole)
+       }
+       //, value.toString());
+       emit dataChanged(index, index);
+       return true;*/
+
+       // return false;
+       //emit dataChanged(index, index);
+
+       // don`t store page data, we will build page data dynamically
+       return false;
+   }
+
+   if (role == static_cast<int>(PersonsModel::NameRole)
+    || role == static_cast<int>(PersonsModel::SurnameRole))
+   {
+       qDebug() << "setData PersonsModel::NameRole " << value << value.toString();
+       QStandardItem * item = this->item(index.row(), index.column());
+       item->setData(value.toString(), role);//Qt::UserRole)
+       //, value.toString());
+       emit dataChanged(index, index);
+       return true;
+   }
+
+   /*if (role == Qt::DisplayRole) {
+       qDebug() << "setData PersonsModel::EditRole " << value << value.toString();
+       QStandardItem * item = this->item(index.row(), index.column());
+       item->setData(value.toString(), role);//Qt::UserRole)
+       //, value.toString());
+       emit dataChanged(index, index);
+       return true;
+   }*/
+
+   if (role == Qt::EditRole && index.column() == static_cast<int>(Columns::Person)) {
+       qDebug() << "setData PersonsModel::EditRole " << value << value.toString();
+       QStandardItem * item = this->item(index.row(), index.column());
+       item->setData(QVariant::fromValue(value.toString()), role);//Qt::UserRole)
+       //, value.toString());
+       emit dataChanged(index, index);
+       return true;
+   }
+
+   return false;
+}
+
 #ifdef customdata
 QVariant PersonsModel::data(const QModelIndex &index, int role) const
 {
@@ -1098,11 +1198,11 @@ QVariant PersonsModel::data(const QModelIndex &index, int role) const
 
   /// \note QDataWidgetMapper uses EditRole to populate mappings
   if (role == Qt::EditRole && index.column() == static_cast<int>(Columns::PersonsPage)) {
-    PersonsPage pPage;
-
-    QList<PersonsPageItem> page;
-
     int pageStartCursor = index.row() * kPersonsPerPage;
+    PersonsPage pPage = buildPersonsPage(index.row(), pageStartCursor, kPersonsPerPage);
+
+    /*QList<PersonsPageItem> page;
+
     pPage.pageStartCursor = pageStartCursor;
     pPage.pageId = index.row();
     qDebug() << "pageStartCursor" << pageStartCursor;
@@ -1122,7 +1222,8 @@ QVariant PersonsModel::data(const QModelIndex &index, int role) const
       pItem.indexOnPage = pageStartCursor;
 
       pPage.items.push_back(pItem);
-    }
+    }*/
+
     return QVariant::fromValue(pPage);
   } else {
     QStandardItem* itm = this->itemFromIndex(index);

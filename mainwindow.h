@@ -130,7 +130,10 @@ public:
     void addPerson(const QString &name);
 
     //QHash<int, QByteArray> roleNames() const Q_DECL_OVERRIDE;
+    PersonsPage buildPersonsPage(int pageId, int pageStartCursor, int itemsPerPage) const;
 
+    bool setData(const QModelIndex &index, const QVariant &value,
+                      int role = Qt::EditRole) override;
 private:
 
     /*struct Node
