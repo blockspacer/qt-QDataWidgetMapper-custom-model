@@ -82,6 +82,11 @@ void PersonPageWidget::clearPage() {
   }
 }
 
+void PersonPageWidget::setMapper(QDataWidgetMapper* mapper)
+{
+  m_mapper = mapper;
+}
+
 void PersonPageWidget::refreshPageWidgets() {
   //QList<QVariant> pageItems = m_PersonsPage.toList();
 
@@ -146,6 +151,12 @@ void PersonPageWidget::refreshPageWidgets(QList<PersonsPageItem>& pageItems) {
       item->setPageIndex(i);
 
       item->setSurname(person.surname);
+
+      /*if(m_mapper) {
+        //m_mapper->addMapping(item->getPersonNameWidget(), 0, "text");
+        if(i==1)
+          m_mapper->addMapping(item, 0, "m_name");
+      }*/
 
       connect(item, &PersonItemWidget::nameChanged, item, [this, item](const QString& text) {
         int itemPageIndex = item->getPageIndex();

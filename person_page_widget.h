@@ -6,6 +6,7 @@
 #include <QWidget>
 #include <QVariant>
 #include <QStandardItem>
+#include <QDataWidgetMapper>
 
 namespace Ui {
 class PersonPageWidget;
@@ -28,6 +29,8 @@ public:
 
   void clearPage();
 
+  void setMapper(QDataWidgetMapper* mapper);
+
   void refreshPageWidgets();
 public slots:
     void setPersonsPage(const QVariant& val);
@@ -43,6 +46,7 @@ private:
 private:
   Ui::PersonPageWidget *ui;
   QVariant m_PersonsPage;
+  QDataWidgetMapper* m_mapper;
 };
 
 #endif // PERSON_PAGE_WIDGET_H

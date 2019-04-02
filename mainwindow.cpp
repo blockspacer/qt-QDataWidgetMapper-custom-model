@@ -578,8 +578,10 @@ m_ui(new Ui::MainWindow)
   m_mapper->setSubmitPolicy(QDataWidgetMapper::AutoSubmit);
   //mapper->setModel(model);
   m_mapper->setOrientation(Qt::Horizontal);
+  //m_mapper->setOrientation(Qt::Vertical);
 
   m_personsWidget = new PersonPageWidget();
+  m_personsWidget->setMapper(m_mapper);
 
   connect(m_personsWidget, SIGNAL(PersonsPageModified(QVariant)),
         this, SLOT(onPersonsPageChanged(QVariant)));
