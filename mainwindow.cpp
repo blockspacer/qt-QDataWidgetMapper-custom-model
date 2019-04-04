@@ -988,16 +988,11 @@ void MainWindow::onPersonsPageChanged(const QVariant& val) {
   int itemTotalIndex = pageStart;
   int itemPageIndex = pageNum;
 
-  //QList<Person> newPersonsPage;
-
   PersonsPage pp = qvariant_cast<PersonsPage>(val);
   QList<PersonsPageItem> pageItems = pp.items;
 
   for(PersonsPageItem& pageItem : pageItems) {
     const Person& person = pageItem.person;
-    qDebug() << "onPersonsPageChanged " << person.name;
-    qDebug() << "onPersonsPageChanged " << person.surname;
-
     QModelIndex pageIndexPerson = m_model->index(itemTotalIndex, personColumnIndex);
     m_model->setData(pageIndexPerson, val, static_cast<int>(PersonsModel::PersonVariantRole));
 
@@ -1006,12 +1001,6 @@ void MainWindow::onPersonsPageChanged(const QVariant& val) {
     m_model->setData(pageIndexPerson, QVariant::fromValue(person.name), static_cast<int>(PersonsModel::NameRole));
     m_model->setData(pageIndexPerson, QVariant::fromValue(person.surname), static_cast<int>(PersonsModel::SurnameRole));
 
-    //QModelIndex pageIndexPersonsPage1 = m_model->index(itemTotalIndex, static_cast<int>(Columns::PersonsPage));
-    //m_model->setData(pageIndexPersonsPage1, QVariant(""), Qt::EditRole);
-
-    //newPersonsPage.push_back(person);
-
-    //ui->scrollAreaWidgetContentsLayout->addWidget();
     itemTotalIndex++;
     itemPageIndex++;
   }
@@ -1027,64 +1016,17 @@ void MainWindow::onPersonsPageChanged(const QVariant& val) {
     /// \note: we don`t store page data, we will build page data dynamically
     /// setData used to refresh Columns::PersonsPage
     m_model->setData(pageIndexPersonsPage, QVariant::fromValue(pPage), Qt::EditRole);
-
-    //m_model->setData(pageIndexPersonsPage, QVariant(""), Qt::EditRole);
-
-        //QVector<int> roles;
-        //roles.push_back(static_cast<int>(PersonsModel::Roles::PersonVariantRole));
-        //roles.push_back(static_cast<int>(PersonsModel::Roles::NameRole));
-        //roles.push_back(static_cast<int>(PersonsModel::Roles::SurnameRole));
-        //roles.push_back(Qt::EditRole);
-        //m_model->dataChanged(pageIndexPersonsPage, pageIndexPersonsPage, roles);
-
-  //m_personsWidget->clearPage();
-  //m_personsWidget->refreshPageWidgets();
-
-      //m_mapper->setCurrentIndex(m_mapper->currentIndex());
-
-        /*QModelIndex existingIndexPerson = m_model->index(modelRow, personColumnIndex);
-        QModelIndex existingIndexPersonPage = m_model->index(modelRow, static_cast<int>(Columns::PersonsPage));
-        QVector<int> roles;
-        roles.push_back(static_cast<int>(PersonsModel::Roles::PersonVariantRole));
-        roles.push_back(static_cast<int>(PersonsModel::Roles::NameRole));
-        roles.push_back(static_cast<int>(PersonsModel::Roles::SurnameRole));
-        //m_model->dataChanged(existingIndexPerson, existingIndexPerson, roles);
-        //m_model->dataChanged(existingIndexPersonPage, existingIndexPersonPage, roles);
-        m_model->setData(existingIndexPerson, QVariant::fromValue(person.name), Qt::EditRole);
-        m_model->setData(existingIndexPerson, QVariant::fromValue(person), static_cast<int>(PersonsModel::PersonVariantRole));
-        m_model->setData(existingIndexPerson, QVariant::fromValue(person.name), static_cast<int>(PersonsModel::NameRole));
-        m_model->setData(existingIndexPerson, QVariant::fromValue(person.surname), static_cast<int>(PersonsModel::SurnameRole));
-        //m_model->setData()*/
 }
 
 void MainWindow::onMapperIndexChanged(int pageNum) {
-  //qDebug() << "onMapperIndexChanged for page " << pageNum;
-
-  //lastFetchedData = fetchRemotePersonsToModel(pageNum, kPersonsPerPage, "");
-
-  /*if (lastFetchedData)
-    qDebug() << "onMapperIndexChanged recievedPersonsNum " << lastFetchedData->recievedPagePersonsNum;
-*/
-  //refreshPageWidgets(lastFetchedData);
-
   if (!m_lastFetchedData || !m_lastFetchedData->recievedPagePersonsNum) {
     qDebug() << "nothing to show";
-    //ui->prevButton->setEnabled(false);
-    //ui->nextButton->setEnabled(false);
     return;
   }
 
-  //int pageStart = lastFetchedData->requestedPageNum * lastFetchedData->requestedPageSize;
-  //int totalPersons = filterModel->rowCount() - 1;
-  //int totalPersons = lastFetchedData->totalPages * lastFetchedData->requestedPageSize;
   int totalPersons = m_lastFetchedData->totalItems;
   int recievedPersons = m_lastFetchedData->recievedPagePersonsNum;
   int pageStart = m_lastFetchedData->requestedPageNum * m_lastFetchedData->requestedPageSize;
-  //ui->prevButton->setEnabled(pageStart > 0 && pageStart < totalPersons);
-  //ui->nextButton->setEnabled((pageStart + lastFetchedData->requestedPageSize) < totalPersons);
-
-  //qDebug() << "onMapperIndexChanged requestedPageNum " << lastFetchedData->requestedPageNum;
-  //qDebug() << "onMapperIndexChanged totalPages " << lastFetchedData->totalPages;
 
   m_ui->prevButton->setEnabled(m_lastFetchedData->requestedPageNum > 0);
   m_ui->nextButton->setEnabled(m_lastFetchedData->requestedPageNum < (m_lastFetchedData->totalPages - 1));
@@ -1114,12 +1056,9 @@ PersonsPage PersonsModel::buildPersonsPage(int pageId, int pageStartCursor, int 
 
     QModelIndex index_person = this->index(i, static_cast<int>(Columns::Person));
     QStandardItem* itm = this->itemFromIndex(index_person);
-    //QString item = qvariant_cast<QString>(itm->data(PersonsModel::Roles::PersonVariantRole).value<QVariant>());
     QVariant item = itm->data(PersonsModel::Roles::PersonVariantRole).value<QVariant>();
 
     pItem.person = qvariant_cast<Person>(item);
-
-    //qDebug() << "pItem.person" << pItem.person.name;
 
     pItem.indexOnPage = pageStartCursor;
 
@@ -1131,25 +1070,13 @@ PersonsPage PersonsModel::buildPersonsPage(int pageId, int pageStartCursor, int 
 
 bool PersonsModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-  qDebug() << "setData PersonsModel " << value << value.toString();
+  //qDebug() << "setData PersonsModel " << value << value.toString();
 
   if (!index.isValid())
     return false;
 
    if (role == Qt::EditRole && index.column() == static_cast<int>(Columns::PersonsPage))
    {
-       /*qDebug() << "setData PersonsModel::EditRole " << value << value.toString();
-       QStandardItem * item = this->item(index.row(), index.column());
-       if(item) {
-        item->setData(value, role);//Qt::UserRole)
-       }
-       //, value.toString());
-       emit dataChanged(index, index);
-       return true;*/
-
-       // return false;
-       //emit dataChanged(index, index);
-
        // don`t store page data, we will build page data dynamically
        return false;
    }
@@ -1164,15 +1091,6 @@ bool PersonsModel::setData(const QModelIndex &index, const QVariant &value, int 
        emit dataChanged(index, index);
        return true;
    }
-
-   /*if (role == Qt::DisplayRole) {
-       qDebug() << "setData PersonsModel::EditRole " << value << value.toString();
-       QStandardItem * item = this->item(index.row(), index.column());
-       item->setData(value.toString(), role);//Qt::UserRole)
-       //, value.toString());
-       emit dataChanged(index, index);
-       return true;
-   }*/
 
    if (role == Qt::EditRole && index.column() == static_cast<int>(Columns::Person)) {
        qDebug() << "setData PersonsModel::EditRole " << value << value.toString();
@@ -1189,11 +1107,6 @@ bool PersonsModel::setData(const QModelIndex &index, const QVariant &value, int 
 #ifdef customdata
 QVariant PersonsModel::data(const QModelIndex &index, int role) const
 {
-  /*QStandardItemModelPrivate *d = reinterpret_cast<QStandardItemModelPrivate *>(QStandardItemModel::d_ptr.data());
-
-  Q_D(const QStandardItemModel);
-  QStandardItem *item = d->itemFromIndex(index);*/
-
   //see https://github.com/alexandru/address-book/blob/master/tablemodel.cpp#L30
   if (!index.isValid())
     return QVariant();
@@ -1202,30 +1115,6 @@ QVariant PersonsModel::data(const QModelIndex &index, int role) const
   if (role == Qt::EditRole && index.column() == static_cast<int>(Columns::PersonsPage)) {
     int pageStartCursor = index.row() * kPersonsPerPage;
     PersonsPage pPage = buildPersonsPage(index.row(), pageStartCursor, kPersonsPerPage);
-
-    /*QList<PersonsPageItem> page;
-
-    pPage.pageStartCursor = pageStartCursor;
-    pPage.pageId = index.row();
-    qDebug() << "pageStartCursor" << pageStartCursor;
-    int availiblePageItems = std::min(rowCount(), pageStartCursor + kPersonsPerPage);
-    for (int i = pageStartCursor; i < availiblePageItems; i++) {
-      PersonsPageItem pItem;
-
-      QModelIndex index_person = this->index(i, static_cast<int>(Columns::Person));
-      QStandardItem* itm = this->itemFromIndex(index_person);
-      //QString item = qvariant_cast<QString>(itm->data(PersonsModel::Roles::PersonVariantRole).value<QVariant>());
-      QVariant item = itm->data(PersonsModel::Roles::PersonVariantRole).value<QVariant>();
-
-      pItem.person = qvariant_cast<Person>(item);
-
-      //qDebug() << "pItem.person" << pItem.person.name;
-
-      pItem.indexOnPage = pageStartCursor;
-
-      pPage.items.push_back(pItem);
-    }*/
-
     return QVariant::fromValue(pPage);
   } else {
     QStandardItem* itm = this->itemFromIndex(index);
@@ -1236,27 +1125,6 @@ QVariant PersonsModel::data(const QModelIndex &index, int role) const
 
     return QVariant(item);
   }
-
-  /*if(role == PersonsModel::Roles::NameRole)
-  {
-    QStandardItem* itm = this->itemFromIndex(index);
-
-    //QModelIndex index_ = this->index(index.row(), index.column());
-    QString item = qvariant_cast<QString>(itm->data(role).value<QVariant>());
-    qDebug() << "Qt::NameRole" << item;
-
-    return QVariant(item);
-  }
-  if(role == PersonsModel::Roles::SurnameRole)
-  {
-    QStandardItem* itm = this->itemFromIndex(index);
-
-    //QModelIndex index_ = this->index(index.row(), index.column());
-    QString item = qvariant_cast<QString>(itm->data(role).value<QVariant>());
-    qDebug() << "Qt::SurnameRole" << item;
-
-    return QVariant(item);
-  }*/
 
   return QVariant();
 }
@@ -1269,11 +1137,3 @@ void PersonsModel::addPerson(const QString &name)
     //item->setData(model, ModelRole);
     appendRow(item);
 }
-
-/*QHash<int, QByteArray> PersonsModel::roleNames() const
-{
-    QHash<int, QByteArray> mapping = QStandardItemModel::roleNames();
-    mapping[NameRole] = "name";
-    mapping[SurnameRole] = "surname";
-    return mapping;
-}*/
