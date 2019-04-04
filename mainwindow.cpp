@@ -399,9 +399,12 @@ std::shared_ptr<fetchedPageData> retrieveRemotePersons(int page, int personsPerP
     dummyRemotePersonsPage.push_back(filtered.at(cursorI));
   }
 
-  std::div_t res = std::div(filtered.size(), personsPerPage);
-  // Fast ceiling of an integer division
-  int pageCount = res.rem ? (res.quot + 1) : res.quot;
+  int pageCount = 1;
+  if (personsPerPage != 0) {
+    std::div_t res = std::div(filtered.size(), personsPerPage);
+    // Fast ceiling of an integer division
+    pageCount = res.rem ? (res.quot + 1) : res.quot;
+  }
 
   result->persons = dummyRemotePersonsPage;
   result->requestedPageNum = page;
