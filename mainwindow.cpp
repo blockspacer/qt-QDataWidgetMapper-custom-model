@@ -729,7 +729,7 @@ m_ui(new Ui::MainWindow)
     // NOTE: empty mapper won't call currentIndexChanged
     m_personsWidget->clearPage();
     //model->dataChanged(QModelIndex(),QModelIndex());
-    if (!m_lastFetchedData || !m_lastFetchedData->recievedPagePersonsNum) {
+    if (!m_lastFetchedData || m_lastFetchedData->recievedPagePersonsNum || m_lastFetchedData->totalPages <= 1) {
       qDebug() << "nothing to show";
       m_ui->prevButton->setEnabled(false);
       m_ui->nextButton->setEnabled(false);
@@ -767,7 +767,7 @@ m_ui(new Ui::MainWindow)
     // NOTE: empty mapper won't call currentIndexChanged
     m_personsWidget->clearPage();
     //model->dataChanged(QModelIndex(),QModelIndex());
-    if (!m_lastFetchedData || !m_lastFetchedData->recievedPagePersonsNum) {
+    if (!m_lastFetchedData || !m_lastFetchedData->recievedPagePersonsNum || m_lastFetchedData->totalPages <= 1) {
       qDebug() << "nothing to show";
       m_ui->prevButton->setEnabled(false);
       m_ui->nextButton->setEnabled(false);
@@ -791,7 +791,7 @@ m_ui(new Ui::MainWindow)
     // NOTE: empty mapper won't call currentIndexChanged
     m_personsWidget->clearPage();
     //model->dataChanged(QModelIndex(),QModelIndex());
-    if (!m_lastFetchedData || !m_lastFetchedData->recievedPagePersonsNum) {
+    if (!m_lastFetchedData || !m_lastFetchedData->recievedPagePersonsNum || m_lastFetchedData->totalPages <= 1) {
       qDebug() << "nothing to show";
       m_ui->prevButton->setEnabled(false);
       m_ui->nextButton->setEnabled(false);
@@ -817,7 +817,7 @@ m_ui(new Ui::MainWindow)
     m_personsWidget->clearPage();
     // NOTE: empty mapper won't call currentIndexChanged
     //model->dataChanged(QModelIndex(),QModelIndex());
-    if (!m_lastFetchedData || !m_lastFetchedData->recievedPagePersonsNum) {
+    if (!m_lastFetchedData || !m_lastFetchedData->recievedPagePersonsNum || m_lastFetchedData->totalPages <= 1) {
       qDebug() << "nothing to show";
       m_ui->prevButton->setEnabled(false);
       m_ui->nextButton->setEnabled(false);
